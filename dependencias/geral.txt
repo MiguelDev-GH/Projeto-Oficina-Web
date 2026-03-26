@@ -1,0 +1,9 @@
+python
+python-pip
+nodejs
+npm
+nmap
+docker
+docker-compose
+pango
+cairo

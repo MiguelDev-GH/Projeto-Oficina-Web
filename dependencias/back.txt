@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+python-nmap
+httpx
+langchain
+langchain-google-genai
+weasyprint
+jinja2
