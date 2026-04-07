@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Relatório SecOps: IA Pentester</title>
+    <style>
+        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; line-height: 1.6; margin: 40px; }
+        h1 { color: #d32f2f; border-bottom: 2px solid #d32f2f; padding-bottom: 10px; }
+        h2 { color: #1976d2; margin-top: 30px; }
+        .vuln-box { border: 1px solid #ddd; padding: 15px; margin-bottom: 20px; border-left: 5px solid #d32f2f; background: #fafafa; }
+        .vuln-title { font-size: 1.2em; font-weight: bold; margin-bottom: 10px; }
+        .code-block { background: #2b2b2b; color: #fff; padding: 10px; border-radius: 4px; font-family: monospace; white-space: pre-wrap; font-size: 0.9em; }
+        .scan-meta { background: #e3f2fd; padding: 10px; border-radius: 4px; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Relatório Oficial SecOps - IA Pentester</h1>
+    
+    <div class="scan-meta">
+        <h3>Meta-Dados do Alvo Laboratorial</h3>
+        <p><strong>Alvo (IP):</strong> {{ scan.target }}</p>
+        <p><strong>Status:</strong> {{ scan.status }}</p>
+        <p><strong>Portas Abertas Observadas:</strong> 
+            {% for port in scan.open_ports %}
+                {{ port.port }}/{{ port.protocol }} ({{ port.name }}){% if not loop.last %}, {% endif %}
+            {% endfor %}
+        </p>
+    </div>
+
+    <h2>Diagnóstico de Vulnerabilidades Detectadas pela IA</h2>
+    {% for vuln in anomalias %}
+    <div class="vuln-box">
+        <div class="vuln-title">{{ vuln.titulo }}</div>
+        
+        <h4>Explicação Técnica:</h4>
+        <p>{{ vuln.explicacao }}</p>
+        
+        <h4>Fluxograma Lógico (Código Mermaid.js Gerado):</h4>
+        <div class="code-block">{{ vuln.mermaid }}</div>
+
+        <h4>Patch de Correção:</h4>
+        <div class="code-block">{{ vuln.patch }}</div>
+    </div>
+    {% else %}
+    <p>Nenhuma vulnerabilidade detectada pela inteligência ou falha no parse do LLM.</p>
+    {% endfor %}
+</body>
+</html>

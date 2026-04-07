@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  # Alvo de Exploração Isolado - Laboratório OWASP Juice Shop
+  juice-shop:
+    image: bkimminich/juice-shop
+    container_name: juice-shop-lab
+    ports:
+      - "3000:3000"
+    networks:
+      - secops_net
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true # Restringe escalonamento de privilégios no alvo
+
+  # Backend FastAPI
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: secops-backend
+    ports:
+      - "8000:8000"
+    networks:
+      - secops_net
+    volumes:
+      - ./backend:/app
+    env_file:
+      - ./backend/.env
+    depends_on:
+      - juice-shop
+
+networks:
+  secops_net:
+    driver: bridge # Rede isolada de ponte nativa para simulação (172.x)
