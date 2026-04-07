@@ -32,14 +32,14 @@ What are the essential flaws or vulnerabilities that you commonly detect underly
 (b) Generate in real-time the script coding actively writing the explicit logical correction of the vulnerability in complete isolated code containing the actual "patches" ready for active applications under the exploited infrastructure eliminating interventionist dependency on providers.
 (c) Create without intervening in errors a visual and documentary structure of the dynamic block in textual outputs formatted for exclusive branching oriented to use in Mermaid.js code forging the descriptive scope so that the framework can create the diagram that explicitly describes visually on the screen the entire route that your logic found explicitly detailing each logical pathway to illustrate the exact dynamics and paths in detection of these vulnerabilities by the system in a step-by-step flow and detection by your AI.
 
-Return ONLY a structured JSON with the following fields (no Markdown backticks, just the raw JSON):
+Retorne SOMENTE um JSON estruturado com os seguintes campos (sem crases Markdown, apenas o JSON cru):
 {{
     "vulnerabilidades": [
         {{
-            "titulo": "Flaw Name",
-            "explicacao": "Use HTML tags like <br>, <b>, and <ul> to structure your technical proof into paragraphs and bullet points for better readability.",
-            "patch": "The raw patch code",
-            "mermaid": "graph TD\\nA[Start] --> B[Issue Detected]\\nB --> C[Resolution]\\n(Use ONLY simple alphanumeric node names like A, B, C. Do NOT use single or double quotes inside the graph string.)"
+            "titulo": "Nome da Falha",
+            "explicacao": "Sua prova documentacional e técnica (use tags HTML como <br> e <b> para formatar o texto e quebrar linhas visualmente)",
+            "patch": "O código de correção cru",
+            "mermaid": "graph TD\\nA[Inicio]-->B[Detectado]\\n (REGRA CRÍTICA DO MERMAID: É ESTRITAMENTE PROIBIDO usar parênteses (), aspas, chaves, colchetes ou caracteres especiais no texto dos nós. Use APENAS letras, números e espaços. O formato obrigatório é ID[Texto do No].)"
         }}
     ]
 }}

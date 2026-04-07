@@ -5,7 +5,7 @@ export default function ReportViewer({ scanData, aiAnalysis }) {
     return (
         <div className="report-viewer">
             <h2>Diagnóstico da Base de Dados & Laboratório</h2>
-            
+
             <div className="telemetry-box">
                 <h3>Dados de Telemetria Esgotados</h3>
                 <p><strong>Alvo Base Isolado:</strong> {scanData?.target || "N/A"}</p>
@@ -15,7 +15,7 @@ export default function ReportViewer({ scanData, aiAnalysis }) {
                     <ul>
                         {scanData?.open_ports?.map((port, i) => (
                             <li key={i}>
-                                Porta <code>{port.port}</code> / {port.protocol.toUpperCase()} — {port.name} 
+                                Porta <code>{port.port}</code> / {port.protocol.toUpperCase()} — {port.name}
                                 {port.product && <span> ({port.product} {port.version})</span>}
                             </li>
                         ))}
@@ -31,10 +31,11 @@ export default function ReportViewer({ scanData, aiAnalysis }) {
                     aiAnalysis.vulnerabilidades.map((vuln, index) => (
                         <div key={index} className="vuln-entry">
                             <h4 className="vuln-title">🔴 {vuln.titulo}</h4>
-                            
+
                             <div className="vuln-section text-block">
                                 <h5>Prova Documentacional Causal:</h5>
-                                <p>{vuln.explicacao}</p>
+                                {/* Renderiza as tags HTML enviadas pela IA com segurança */}
+                                <div dangerouslySetInnerHTML={{ __html: vuln.explicacao }}></div>
                             </div>
 
                             <div className="vuln-section diagram-block">
