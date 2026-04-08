@@ -1,6 +1,7 @@
 {
     "target": "172.17.0.2",
-    "status": "down",
+    "resolved_target": "172.17.0.2",
+    "status": "up",
     "open_ports": [],
     "http_metadata": {}
 }

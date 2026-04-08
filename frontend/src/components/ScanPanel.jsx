@@ -35,12 +35,12 @@ export default function ScanPanel({ onScanComplete }) {
             
             <form onSubmit={handleScanSubmit}>
                 <div className="input-group">
-                    <label>IP de Alvo Laboratório (Juice Shop / Local):</label>
+                    <label>IP de Alvo Laboratório (Juice Shop / Local / Host):</label>
                     <input 
                         type="text" 
                         value={target} 
                         onChange={(e) => setTarget(e.target.value)} 
-                        placeholder="Ex: 172.17.0.2 ou localhost"
+                        placeholder="Ex: 172.17.0.2, juice-shop ou localhost:3000"
                     />
                 </div>
                     <div className="input-group">

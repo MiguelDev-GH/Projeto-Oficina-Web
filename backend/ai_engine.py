@@ -2,50 +2,60 @@ import os
 import json
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import PromptTemplate
+from dotenv import load_dotenv
 import asyncio
+
+# Load .env at module level to ensure variables are available
+env_path = os.path.join(os.path.dirname(__file__), ".env")
+load_dotenv(env_path)
 
 class PentestAIEngine:
     def __init__(self, model_name: str = None):
-        api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
-        if not api_key:
-            raise ValueError("[CRITICAL ERROR] GEMINI_API_KEY or GOOGLE_API_KEY not found. Configure it in the .env file or environment variables.")
+        # LangChain Google GenAI uses GOOGLE_API_KEY by default
+        api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
+        
+        if not api_key or api_key == "sua_chave_aqui":
+            raise ValueError("[CRITICAL ERROR] GOOGLE_API_KEY not found or invalid in .env file. Please add your real Gemini API key.")
+        
+        # Ensure the environment variable is set for the library's internal use as well
+        os.environ["GOOGLE_API_KEY"] = api_key
         
         # Determine model: explicit argument > env var > default
         if model_name:
             chosen_model = model_name
         else:
-            chosen_model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+            chosen_model = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
         
-        print(f"[*] Connecting to AI provider with model {chosen_model}...")
+        print(f"[*] Conectando ao provedor de IA com o modelo {chosen_model}...")
         self.llm = ChatGoogleGenerativeAI(
             model=chosen_model,
             temperature=0.2,
-            google_api_key=api_key,
+            api_key=api_key,
             max_retries=2
         )
         
         self.prompt_template = PromptTemplate(
             input_variables=["scan_data"],
             template="""
-You are an Autonomous Expert Software Architect and Principal Security Engineer (SecOps).
-Analyze the following scan result from an isolated environment:
+Você é um Arquiteto de Software Especialista e Engenheiro de Segurança Principal (SecOps) Autônomo.
+Analise o seguinte resultado de varredura (scan) de um ambiente isolado:
 
-[SCAN DATA IN JSON]
+[DADOS DO SCAN EM JSON]
 {scan_data}
 
-What are the essential flaws or vulnerabilities that you commonly detect underlying critical code and open ports in these scanned documents that you read from this scan? Create in your deep reasoning response actively formatted:
-(a) A documentary proof of how this is exploitable along with a highly technical deep explanation providing why the code under analysis generates the bug.
-(b) Generate in real-time the script coding actively writing the explicit logical correction of the vulnerability in complete isolated code containing the actual "patches" ready for active applications under the exploited infrastructure eliminating interventionist dependency on providers.
-(c) Create without intervening in errors a visual and documentary structure of the dynamic block in textual outputs formatted for exclusive branching oriented to use in Mermaid.js code forging the descriptive scope so that the framework can create the diagram that explicitly describes visually on the screen the entire route that your logic found explicitly detailing each logical pathway to illustrate the exact dynamics and paths in detection of these vulnerabilities by the system in a step-by-step flow and detection by your AI.
+Quais são as falhas essenciais ou vulnerabilidades que você detecta nos serviços e portas abertas? Crie uma resposta de raciocínio profundo formatada da seguinte forma:
+(a) Uma prova documental de como isso é explorável junto com uma explicação técnica profunda de por que o código gera o bug.
+(b) Gere o código explícito da correção da vulnerabilidade (PATCH) pronto para aplicação.
+(c) Crie uma estrutura visual para Mermaid.js que descreva explicitamente o caminho lógico da detecção.
 
 Retorne SOMENTE um JSON estruturado com os seguintes campos (sem crases Markdown, apenas o JSON cru):
 {{
     "vulnerabilidades": [
         {{
             "titulo": "Nome da Falha",
-            "explicacao": "Sua prova documentacional e técnica (use tags HTML como <br> e <b> para formatar o texto e quebrar linhas visualmente)",
+            "explicacao": "Sua prova técnica (use tags HTML como <br> e <b> para formatar o texto e quebrar linhas)",
             "patch": "O código de correção cru",
-            "mermaid": "graph TD\\nA[Inicio]-->B[Detectado]\\n (REGRA CRÍTICA DO MERMAID: É ESTRITAMENTE PROIBIDO usar parênteses (), aspas, chaves, colchetes ou caracteres especiais no texto dos nós. Use APENAS letras, números e espaços. O formato obrigatório é ID[Texto do No].)"
+            "mermaid": "graph TD\\nA[Identificacao] --> B[Analise]\\nB --> C[Conclusao]\\n(REGRA: Use apenas letras e espaços nos nós. Ex: A[Busca de Portas] --> B[Vulnerabilidade Detectada].)"
         }}
     ]
 }}
@@ -58,16 +68,16 @@ Retorne SOMENTE um JSON estruturado com os seguintes campos (sem crases Markdown
             with open("scan_results.json", "r", encoding="utf-8") as f:
                 scan_data_str = f.read()
         except FileNotFoundError:
-            return {"error": "File scan_results.json not found. Run the scanner first."}
+            return {"error": "Arquivo scan_results.json não encontrado. Execute o scanner primeiro."}
             
-        print(f"[*] Starting inference data analysis (Size: {len(scan_data_str)} bytes)...")
-        print("[*] Sending request to generative AI (this may take 5 to 20 seconds)...")
+        print(f"[*] Iniciando análise de dados (Tamanho: {len(scan_data_str)} bytes)...")
+        print("[*] Enviando solicitação para a IA Generativa (isso pode levar de 5 a 20 segundos)...")
         
         try:
             response = await self.chain.ainvoke({"scan_data": scan_data_str})
-            print("[✓] AI response received successfully!")
+            print("[✓] Resposta da IA recebida com sucesso!")
         except Exception as e:
-            print(f"[ERROR] AI failed to process the request: {str(e)}")
+            print(f"[ERRO] A IA falhou ao processar a solicitação: {str(e)}")
             return {"error": str(e), "status": "ai_failure"}
         
         raw_text = response.content.strip()
@@ -83,13 +93,13 @@ Retorne SOMENTE um JSON estruturado com os seguintes campos (sem crases Markdown
             self._save_analysis(parsed_data)
             return parsed_data
         except json.JSONDecodeError as e:
-            print(f"[ERROR] Failed to parse JSON: {e}")
-            return {"error": "AI did not return a valid JSON.", "raw": raw_text}
+            print(f"[ERRO] Falha ao analisar JSON da IA: {e}")
+            return {"error": "A IA não retornou um JSON válido.", "raw": raw_text}
 
     def _save_analysis(self, data: dict):
         with open("analysis_results.json", "w", encoding="utf-8") as f:
             json.dump(data, f, indent=4, ensure_ascii=False)
-        print("[*] Analysis saved to analysis_results.json")
+        print("[*] Análise salva em analysis_results.json")
 
 if __name__ == "__main__":
     from dotenv import load_dotenv

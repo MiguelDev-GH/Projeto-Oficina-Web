@@ -15,39 +15,50 @@ class SecurityScanner:
         Validação irrestrita de IP: Permite apenas IPs privados.
         Bloqueia totalmente o escaneamento de alvos externos/públicos.
         """
-        if ip_str == "localhost":
+        allowed_hosts = ["localhost", "127.0.0.1", "host.docker.internal", "juice-shop"]
+        if ip_str in allowed_hosts:
             return True
         try:
             ip = ipaddress.ip_address(ip_str)
             return ip.is_private or ip.is_loopback
         except ValueError:
-            return False
+            # Se for um hostname (ex: juice-shop), permite se for do laboratório
+            return ip_str == "juice-shop"
 
     async def scan_target(self, target: str, port_range: str = "1-65535") -> Dict[str, Any]:
         """
-        Executa um escaneamento nmap síncrono envolvido em uma thread assíncrona
-        para verificar portas e serviços.
+        Executa um escaneamento nmap síncrono envolvido em uma thread assíncrona.
+        Se target for localhost, tenta também host.docker.internal para alcançar o host do Docker.
         """
-        if not self._validate_ip(target):
-            raise ValueError(f"[ERRO DE SEGURANÇA] O IP {target} não é um IP privado válido do laboratório. Execução bloqueada.")
+        clean_target = target
+        if target == "localhost":
+             # Dentro do Docker, localhost é o próprio container. 
+             # Para o usuário testar "o que está no computador dele", usamos host.docker.internal
+             clean_target = "host.docker.internal"
+             print(f"[*] Traduzindo localhost para {clean_target} para alcançar o host Docker.")
 
-        print(f"[*] Iniciando escaneamento Nmap no alvo isolado: {target}:{port_range}")
+        if not self._validate_ip(clean_target):
+            raise ValueError(f"[ERRO DE SEGURANÇA] O alvo {target} ({clean_target}) não é um IP privado válido do laboratório. Execução bloqueada.")
+
+        print(f"[*] Iniciando escaneamento Nmap no alvo isolado: {clean_target}:{port_range}")
         
         # Executa nmap em thread separada para não bloquear o event loop do FastAPI
-        scan_data = await asyncio.to_thread(self.nm.scan, target, port_range, arguments="-sV -T4")
+        # Adicionamos -Pn porque alguns hosts locais podem não responder a ping
+        scan_data = await asyncio.to_thread(self.nm.scan, clean_target, port_range, arguments="-sV -Pn -T4")
         
         results = {
             "target": target,
-            "status": "up" if target in self.nm.all_hosts() else "down",
+            "resolved_target": clean_target,
+            "status": "up" if clean_target in self.nm.all_hosts() else "down",
             "open_ports": [],
             "http_metadata": {}
         }
 
-        if target in self.nm.all_hosts():
-            for proto in self.nm[target].all_protocols():
-                ports = self.nm[target][proto].keys()
+        if clean_target in self.nm.all_hosts():
+            for proto in self.nm[clean_target].all_protocols():
+                ports = self.nm[clean_target][proto].keys()
                 for port in sorted(ports):
-                    port_info = self.nm[target][proto][port]
+                    port_info = self.nm[clean_target][proto][port]
                     if port_info['state'] == 'open':
                         results["open_ports"].append({
                             "port": port,
@@ -59,7 +70,7 @@ class SecurityScanner:
                         
                         # Se for provável que seja HTTP/HTTPS, tenta um fingerprint HTTP
                         if port_info.get('name', '') in ['http', 'https', 'http-alt'] or port in [80, 443, 3000, 8000, 8080]:
-                            http_info = await self._gather_http_metadata(target, port, port_info.get('name', 'http'))
+                            http_info = await self._gather_http_metadata(clean_target, port, port_info.get('name', 'http'))
                             if http_info:
                                 results["http_metadata"][f"{port}"] = http_info
 

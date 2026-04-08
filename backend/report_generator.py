@@ -12,7 +12,7 @@ class ReportGenerator:
         self.env = Environment(loader=FileSystemLoader(self.template_dir))
 
     def generate_pdf(self, scan_data: dict, analysis_data: dict) -> str:
-        print("[*] Rendering SEC-OPS report template...") # Translated output to English
+        print("[*] Renderizando o template do relatório SEC-OPS...")
         template = self.env.get_template("report.html.j2")
         
         html_content = template.render(
@@ -22,8 +22,8 @@ class ReportGenerator:
         
         output_file = os.path.join(self.output_dir, "secops_report.pdf")
         
-        print("[*] Converting to professional PDF...") # Translated output to English
+        print("[*] Convertendo para PDF profissional via WeasyPrint...")
         HTML(string=html_content).write_pdf(output_file)
         
-        print(f"[*] Report finalized and saved to: {output_file}") # Translated output to English
+        print(f"[*] Relatório finalizado e salvo em: {output_file}")
         return output_file
