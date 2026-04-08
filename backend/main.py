@@ -27,7 +27,7 @@ async def root():
     return {"message": "Hello World. Isolated FastAPI environment running successfully."}
 
 @app.post("/analyze")
-async def analyze_target(target: str = "172.17.0.2"):
+async def analyze_target(target: str = "172.17.0.2", model: str = None):
     """
     Orchestrates the 3 phases in a single call.
     Attention: The scanner actively blocks any public IP.
@@ -36,7 +36,7 @@ async def analyze_target(target: str = "172.17.0.2"):
         scanner = SecurityScanner()
         scan_results = await scanner.scan_target(target, "3000,80,443")
         
-        engine = PentestAIEngine()
+        engine = PentestAIEngine(model_name=model)
         ai_analysis = await engine.analyze_scan()
         
         if "error" not in ai_analysis:

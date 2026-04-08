@@ -11,7 +11,7 @@ services:
       - secops_net
     restart: unless-stopped
     security_opt:
-      - no-new-privileges:true # Restringe escalonamento de privilégios no alvo
+      - no-new-privileges:false # Restringe escalonamento de privilégios no alvo
 
   # Backend FastAPI
   backend:

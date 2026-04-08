@@ -84,7 +84,8 @@ h3 {
     color: #aaa;
 }
 
-.input-group input {
+.input-group input, 
+.model-select {
     width: 100%;
     padding: 12px;
     background: #000;
@@ -95,9 +96,11 @@ h3 {
     font-size: 1.1em;
     outline: none;
     box-sizing: border-box;
+    cursor: pointer;
 }
 
-.input-group input:focus {
+.input-group input:focus,
+.model-select:focus {
     border-color: #33ff33;
 }
 

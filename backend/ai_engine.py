@@ -5,17 +5,23 @@ from langchain_core.prompts import PromptTemplate
 import asyncio
 
 class PentestAIEngine:
-    def __init__(self):
+    def __init__(self, model_name: str = None):
         api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
         if not api_key:
             raise ValueError("[CRITICAL ERROR] GEMINI_API_KEY or GOOGLE_API_KEY not found. Configure it in the .env file or environment variables.")
         
-        print("[*] Connecting to AI provider with model gemini-2.5-flash...")
+        # Determine model: explicit argument > env var > default
+        if model_name:
+            chosen_model = model_name
+        else:
+            chosen_model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+        
+        print(f"[*] Connecting to AI provider with model {chosen_model}...")
         self.llm = ChatGoogleGenerativeAI(
-            model="gemini-2.5-flash", # Updated to a supported model version since 1.5 was deprecated
-            temperature=0.2, 
+            model=chosen_model,
+            temperature=0.2,
             google_api_key=api_key,
-            max_retries=2 
+            max_retries=2
         )
         
         self.prompt_template = PromptTemplate(

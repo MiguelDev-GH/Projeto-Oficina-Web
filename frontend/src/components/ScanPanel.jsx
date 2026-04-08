@@ -6,14 +6,15 @@ export default function ScanPanel({ onScanComplete }) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
+    const [model, setModel] = useState('gemini-2.5-flash');
     const handleScanSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
         setError(null);
         
         try {
-            // Chama a orquestração primária do Backend
-            const response = await axios.post(`http://localhost:8000/analyze?target=${encodeURIComponent(target)}`);
+            // Chama a orquestração primária do Backend, enviando modelo selecionado
+            const response = await axios.post(`http://localhost:8000/analyze?target=${encodeURIComponent(target)}&model=${encodeURIComponent(model)}`);
             
             if (response.data.status === "sucesso") {
                 onScanComplete(response.data);
@@ -42,6 +43,19 @@ export default function ScanPanel({ onScanComplete }) {
                         placeholder="Ex: 172.17.0.2 ou localhost"
                     />
                 </div>
+                    <div className="input-group">
+                        <label>Modelo Gemini:</label>
+                        <select value={model} onChange={(e) => setModel(e.target.value)} className="model-select">
+                            <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+                            <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
+                            <option value="gemini-2.0-flash">Gemini 2 Flash</option>
+                            <option value="gemini-2.0-flash-lite">Gemini 2 Flash Lite</option>
+                            <option value="gemini-3.0-flash">Gemini 3 Flash</option>
+                            <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite</option>
+                            <option value="gemini-3.1-pro">Gemini 3.1 Pro</option>
+                            <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite</option>
+                        </select>
+                    </div>
                 
                 <button type="submit" className="neon-button" disabled={loading}>
                     {loading ? "INICIANDO INFILTRAÇÃO ANALÍTICA..." : "EXECUTAR VARREDURA E ANÁLISE IA"}
