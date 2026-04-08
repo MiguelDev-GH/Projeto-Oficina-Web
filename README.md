@@ -1,6 +1,7 @@
 <div align="center">
   <img src="./frontend/src/assets/BenTesterLogo.png" alt="BenTester Logo" width="200">
 </div>
+
 # 👥 Equipe
 - Miguel Chagas Maciel ( **Scrum Master** )
 - João Manoel ( **Developer** - *Security* )
