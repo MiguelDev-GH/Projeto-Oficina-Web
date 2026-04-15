@@ -19,10 +19,23 @@ export default function ScanPanel({ onScanComplete }) {
             if (response.data.status === "sucesso") {
                 onScanComplete(response.data);
             } else {
-                setError(response.data.error || "Ação bloqueada pelas regras de confinamento seguro.");
+                const errorMessage = response.data.error || "Ação bloqueada pelas regras de confinamento seguro.";
+                setError(errorMessage);
+                // Também enviamos para o ReportViewer via callback se quisermos que apareça lá
+                onScanComplete({
+                    scan_data: response.data.scan_data || null,
+                    inteligencia: { error: errorMessage, status: response.data.status },
+                    pdf_report: null
+                });
             }
         } catch (err) {
-            setError(err.response?.data?.detail || err.message || 'Erro intrusivo na conexão com back-end.');
+            const errorMessage = err.response?.data?.detail || err.message || 'Erro intrusivo na conexão com back-end.';
+            setError(errorMessage);
+            onScanComplete({
+                scan_data: null,
+                inteligencia: { error: errorMessage, status: "connection_failure" },
+                pdf_report: null
+            });
         } finally {
             setLoading(false);
         }

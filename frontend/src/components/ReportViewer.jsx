@@ -2,6 +2,24 @@ import React from 'react';
 import DiagramRenderer from './DiagramRenderer';
 
 export default function ReportViewer({ scanData, aiAnalysis }) {
+    if (aiAnalysis?.error) {
+        return (
+            <div className="report-viewer">
+                <div className="error-log-box">
+                    <h3 className="error-title">⚠️ Falha no Núcleo de Inteligência</h3>
+                    <div className="error-content">
+                        <p><strong>Log de Erro do Back-end:</strong></p>
+                        <pre><code>{aiAnalysis.error}</code></pre>
+                        <p className="error-hint">
+                            Sugestão: Verifique se o modelo selecionado ({aiAnalysis?.status === 'ai_failure' ? 'API Gemini' : 'Processamento'}) 
+                            está disponível ou se há um problema de conectividade com o laboratório.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="report-viewer">
             <h2>Diagnóstico da Base de Dados & Laboratório</h2>
@@ -34,7 +52,6 @@ export default function ReportViewer({ scanData, aiAnalysis }) {
 
                             <div className="vuln-section text-block">
                                 <h5>Prova Documentacional Causal:</h5>
-                                {/* Renderiza as tags HTML enviadas pela IA com segurança */}
                                 <div dangerouslySetInnerHTML={{ __html: vuln.explicacao }}></div>
                             </div>
 

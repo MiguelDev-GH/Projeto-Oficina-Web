@@ -35,7 +35,7 @@ function App() {
       <main className="main-content">
         <ScanPanel onScanComplete={handleScanComplete} />
 
-        {sessionData.scanData && (
+        {(sessionData.scanData || sessionData.aiAnalysis?.error) && (
           <ReportViewer
             scanData={sessionData.scanData}
             aiAnalysis={sessionData.aiAnalysis}
