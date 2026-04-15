@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Relatório DAST Web — SecOps: IA Pentester</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background: #0d0d0f;
+            color: #c8c8d0;
+            line-height: 1.65;
+            padding: 40px 48px;
+        }
+
+        /* ── Header ─────────────────────────────────────────── */
+        .report-header {
+            border-bottom: 2px solid #d32f2f;
+            padding-bottom: 18px;
+            margin-bottom: 32px;
+        }
+        .report-header h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #ff5252;
+            letter-spacing: -0.02em;
+        }
+        .report-header .subtitle {
+            font-size: 0.9rem;
+            color: #71717a;
+            margin-top: 6px;
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+        .badge-web  { background: rgba(99,102,241,0.15); color: #818cf8; border: 1px solid rgba(99,102,241,0.3); }
+        .badge-dast { background: rgba(245,158,11,0.12); color: #fbbf24; border: 1px solid rgba(245,158,11,0.3); }
+
+        /* ── Meta ───────────────────────────────────────────── */
+        .scan-meta {
+            background: #18181b;
+            border: 1px solid #27272a;
+            border-left: 4px solid #6366f1;
+            border-radius: 10px;
+            padding: 18px 22px;
+            margin-bottom: 32px;
+        }
+        .scan-meta h3 { font-size: 0.85rem; color: #818cf8; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 12px; }
+        .scan-meta p  { font-size: 0.9rem; color: #a1a1aa; margin-bottom: 6px; }
+        .scan-meta strong { color: #e4e4e7; }
+
+        /* ── Screenshot ─────────────────────────────────────── */
+        .screenshot-section {
+            margin-bottom: 36px;
+        }
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #e4e4e7;
+            margin-bottom: 14px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #27272a;
+        }
+        .screenshot-wrap {
+            border: 1px solid #3f3f46;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        }
+        .screenshot-wrap img {
+            width: 100%;
+            display: block;
+        }
+
+        /* ── Resumo Executivo ───────────────────────────────── */
+        .summary-box {
+            background: #1a1a2e;
+            border: 1px solid #2d2d4e;
+            border-left: 4px solid #818cf8;
+            border-radius: 10px;
+            padding: 20px 24px;
+            margin-bottom: 32px;
+            font-size: 0.95rem;
+            color: #c8c8d0;
+        }
+
+        /* ── Fingerprint IA ─────────────────────────────────── */
+        .fingerprint-box {
+            background: #18181b;
+            border: 1px solid #27272a;
+            border-radius: 12px;
+            padding: 22px;
+            margin-bottom: 32px;
+        }
+        .fingerprint-box .fp-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .fp-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 14px;
+            border-radius: 9999px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .fp-detected   { background: rgba(239,68,68,0.12);  color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
+        .fp-undetected { background: rgba(16,185,129,0.10); color: #34d399; border: 1px solid rgba(16,185,129,0.25); }
+        .confidence    { font-size: 0.8rem; color: #71717a; }
+        .evidence-list { list-style: none; padding: 0; margin-top: 10px; }
+        .evidence-list li {
+            background: #09090b;
+            border: 1px solid #27272a;
+            border-radius: 6px;
+            padding: 8px 12px;
+            margin-bottom: 6px;
+            font-size: 0.85rem;
+            color: #a1a1aa;
+        }
+        .evidence-list li::before { content: "▸ "; color: #818cf8; }
+
+        /* ── Vulnerabilidades ───────────────────────────────── */
+        .vuln-box {
+            border: 1px solid #27272a;
+            border-radius: 12px;
+            padding: 22px;
+            margin-bottom: 20px;
+            background: #121214;
+        }
+        .vuln-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            margin-bottom: 16px;
+        }
+        .vuln-title { font-size: 1.05rem; font-weight: 600; color: #fca5a5; }
+        .sev {
+            padding: 3px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .sev-critica  { background: rgba(239,68,68,0.2);  color: #ef4444; }
+        .sev-alta     { background: rgba(249,115,22,0.2); color: #fb923c; }
+        .sev-media    { background: rgba(245,158,11,0.2); color: #fbbf24; }
+        .sev-baixa    { background: rgba(16,185,129,0.2); color: #34d399; }
+        .sev-info     { background: rgba(99,102,241,0.2); color: #818cf8; }
+
+        .sub-title {
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: #52525b;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin: 18px 0 8px;
+        }
+        .explicacao { font-size: 0.9rem; color: #a1a1aa; }
+        .code-block {
+            background: #09090b;
+            border: 1px solid #27272a;
+            border-radius: 8px;
+            padding: 14px 16px;
+            font-family: 'SFMono-Regular', Consolas, monospace;
+            font-size: 0.82rem;
+            color: #60a5fa;
+            white-space: pre-wrap;
+            word-break: break-all;
+            margin-top: 6px;
+        }
+
+        /* ── Console Logs ───────────────────────────────────── */
+        .console-section { margin-bottom: 36px; }
+        .log-entry {
+            display: flex;
+            gap: 10px;
+            padding: 10px 14px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+        }
+        .log-error, .log-pageerror {
+            background: rgba(239,68,68,0.06);
+            border: 1px solid rgba(239,68,68,0.2);
+        }
+        .log-warning {
+            background: rgba(245,158,11,0.06);
+            border: 1px solid rgba(245,158,11,0.2);
+        }
+        .log-log, .log-info, .log-debug {
+            background: #18181b;
+            border: 1px solid #27272a;
+        }
+        .log-type {
+            font-weight: 700;
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            padding: 2px 8px;
+            border-radius: 4px;
+            flex-shrink: 0;
+            align-self: flex-start;
+            margin-top: 1px;
+        }
+        .type-error, .type-pageerror { background: rgba(239,68,68,0.2);  color: #f87171; }
+        .type-warning               { background: rgba(245,158,11,0.2); color: #fbbf24; }
+        .type-log, .type-info, .type-debug { background: #27272a; color: #71717a; }
+        .log-text  { color: #c8c8d0; word-break: break-all; flex: 1; }
+        .log-loc   { color: #52525b; font-size: 0.78rem; margin-top: 2px; }
+
+        .risk-box {
+            background: #18181b;
+            border: 1px solid #3f3f46;
+            border-left: 3px solid #fbbf24;
+            border-radius: 8px;
+            padding: 16px 18px;
+            margin-bottom: 14px;
+        }
+        .risk-title { font-weight: 600; color: #fbbf24; font-size: 0.95rem; margin-bottom: 6px; }
+        .risk-desc  { font-size: 0.88rem; color: #a1a1aa; }
+
+        /* ── Empty States ───────────────────────────────────── */
+        .empty { color: #52525b; font-style: italic; font-size: 0.88rem; padding: 12px 0; }
+
+        /* ── Page breaks para WeasyPrint ────────────────────── */
+        .page-break { page-break-after: always; }
+    </style>
+</head>
+<body>
+
+<!-- ── Header ──────────────────────────────────────────────────────────────── -->
+<div class="report-header">
+    <h1>
+        Relatório Oficial SecOps — IA Pentester
+        <span class="badge badge-web">WEB APP</span>
+        <span class="badge badge-dast">DAST MULTIMODAL</span>
+    </h1>
+    <p class="subtitle">Análise dinâmica gerada automaticamente via Playwright + Gemini Vision</p>
+</div>
+
+<!-- ── Meta-dados ──────────────────────────────────────────────────────────── -->
+<div class="scan-meta">
+    <h3>Meta-Dados da Captura</h3>
+    <p><strong>URL Alvo:</strong> {{ scan.url }}</p>
+    <p><strong>Modo:</strong> DAST Multimodal (Playwright Headless + Gemini Vision)</p>
+    <p><strong>HTML Capturado:</strong> {{ scan.html_size_bytes | default(0) }} bytes</p>
+    <p><strong>Logs de Console:</strong> {{ scan.console_log_count | default(0) }} entradas capturadas</p>
+    <p><strong>Erros de Rede:</strong> {{ scan.network_errors | default([]) | length }} requisições falhas</p>
+</div>
+
+<!-- ── Screenshot ──────────────────────────────────────────────────────────── -->
+{% if scan.screenshot_b64 %}
+<div class="screenshot-section">
+    <div class="section-title">📸 Screenshot da Aplicação (Captura Headless)</div>
+    <div class="screenshot-wrap">
+        <img src="data:image/jpeg;base64,{{ scan.screenshot_b64 }}" alt="Screenshot da aplicação web alvo" />
+    </div>
+</div>
+{% endif %}
+
+<!-- ── Resumo Executivo ─────────────────────────────────────────────────────── -->
+{% if resumo %}
+<div class="summary-box">
+    <div class="section-title">📋 Resumo Executivo</div>
+    {{ resumo }}
+</div>
+{% endif %}
+
+<div class="page-break"></div>
+
+<!-- ── Fingerprint de IA ───────────────────────────────────────────────────── -->
+<div class="fingerprint-box">
+    <div class="section-title">🤖 Fingerprint de IA — Detecção de Geração Automática</div>
+    {% if fingerprint %}
+        <div class="fp-header">
+            {% if fingerprint.detectado %}
+                <span class="fp-status fp-detected">🔴 IA Detectada</span>
+            {% else %}
+                <span class="fp-status fp-undetected">🟢 Não Detectada</span>
+            {% endif %}
+            <span class="confidence">Confiança: {{ fingerprint.confianca | default('N/A') }}</span>
+        </div>
+        <p class="explicacao">{{ fingerprint.explicacao }}</p>
+        {% if fingerprint.evidencias %}
+            <div class="sub-title">Evidências</div>
+            <ul class="evidence-list">
+                {% for ev in fingerprint.evidencias %}
+                    <li>{{ ev }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% else %}
+        <p class="empty">Fingerprint de IA não disponível nesta análise.</p>
+    {% endif %}
+</div>
+
+<!-- ── Vulnerabilidades Web ────────────────────────────────────────────────── -->
+<div class="section-title">🔴 Vulnerabilidades Detectadas via DOM / DAST</div>
+{% for vuln in web_vulns %}
+<div class="vuln-box">
+    <div class="vuln-header">
+        <div>
+            <div class="vuln-title">{{ vuln.titulo }}</div>
+            <div style="font-size:0.8rem;color:#71717a;margin-top:4px;">Categoria: {{ vuln.categoria | default('N/A') }}</div>
+        </div>
+        {% set sev = vuln.severidade | default('Informação') | lower %}
+        {% if 'crítica' in sev or 'critica' in sev %}
+            <span class="sev sev-critica">{{ vuln.severidade }}</span>
+        {% elif 'alta' in sev %}
+            <span class="sev sev-alta">{{ vuln.severidade }}</span>
+        {% elif 'média' in sev or 'media' in sev %}
+            <span class="sev sev-media">{{ vuln.severidade }}</span>
+        {% elif 'baixa' in sev %}
+            <span class="sev sev-baixa">{{ vuln.severidade }}</span>
+        {% else %}
+            <span class="sev sev-info">{{ vuln.severidade }}</span>
+        {% endif %}
+    </div>
+
+    <div class="sub-title">Explicação Técnica</div>
+    <p class="explicacao">{{ vuln.explicacao }}</p>
+
+    {% if vuln.evidencia_dom %}
+        <div class="sub-title">Evidência no DOM</div>
+        <div class="code-block">{{ vuln.evidencia_dom }}</div>
+    {% endif %}
+
+    {% if vuln.patch %}
+        <div class="sub-title">Patch / Correção</div>
+        <div class="code-block">{{ vuln.patch }}</div>
+    {% endif %}
+</div>
+{% else %}
+<p class="empty">Nenhuma vulnerabilidade web detectada pela IA ou falha no parse do LLM.</p>
+{% endfor %}
+
+<div class="page-break"></div>
+
+<!-- ── Riscos de Console ───────────────────────────────────────────────────── -->
+<div class="console-section">
+    <div class="section-title">⚠️ Riscos Identificados via Console Logs</div>
+    {% for risk in console_risks %}
+    <div class="risk-box">
+        <div class="risk-title">{{ risk.titulo }}</div>
+        <div class="code-block" style="margin-bottom:8px;">{{ risk.log_original }}</div>
+        <div class="risk-desc">{{ risk.explicacao }}</div>
+    </div>
+    {% else %}
+    <p class="empty">Nenhum risco de console identificado.</p>
+    {% endfor %}
+</div>
+
+<!-- ── Console Logs Brutos ─────────────────────────────────────────────────── -->
+<div class="section-title">📟 Console Logs Brutos Capturados</div>
+{% if scan.console_logs %}
+    {% for log in scan.console_logs %}
+    <div class="log-entry log-{{ log.type }}">
+        <span class="log-type type-{{ log.type }}">{{ log.type }}</span>
+        <div>
+            <div class="log-text">{{ log.text }}</div>
+            {% if log.location %}
+                <div class="log-loc">{{ log.location }}</div>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+{% else %}
+    <p class="empty">Nenhum log de console foi capturado durante o carregamento.</p>
+{% endif %}
+
+</body>
+</html>
