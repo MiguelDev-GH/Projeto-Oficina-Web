@@ -20,15 +20,15 @@ function App() {
   };
 
   return (
-    <div className="app-container dark-mode">
+    <div className="app-container">
       <header className="app-header">
-        <span>
-          <img src={Logo} alt="Logo" />
+        <div className="header-brand">
+          <img src={Logo} alt="Ben Tester Logo" />
           <h1>Ben Tester</h1>
-        </span>
+        </div>
         <div className="status-indicator">
           <span className="dot pulse"></span>
-          Conectado: Núcleo LangChain & Gemini Ativo
+          LangChain &amp; Gemini Ativo
         </div>
       </header>
 
@@ -45,9 +45,14 @@ function App() {
         {sessionData.pdfPath && (
           <div className="pdf-download-panel">
             <h3>Relatório Operacional Compilado</h3>
-            <p>O dossiê documentacional em padrão executivo foi forjado com sucesso via WeasyPrint no Back-end.</p>
-            <a href={`http://localhost:8000${sessionData.pdfPath}`} target="_blank" rel="noopener noreferrer" className="download-button">
-              ACESSAR PDF SEGREGADO
+            <p>Dossiê em padrão executivo forjado via WeasyPrint.</p>
+            <a
+              href={`http://localhost:8000${sessionData.pdfPath}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="download-button"
+            >
+              ⬇ ACESSAR PDF SEGREGADO
             </a>
           </div>
         )}
