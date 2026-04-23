@@ -9,3 +9,4 @@ weasyprint>=62.0
 python-dotenv==1.0.1
 aiofiles==23.2.1
 playwright>=1.44.0
+python-multipart==0.0.9
