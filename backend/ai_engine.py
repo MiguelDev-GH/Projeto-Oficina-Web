@@ -216,6 +216,53 @@ Realize uma análise DAST (Dynamic Application Security Testing) completa e reto
             json.dump(data, f, indent=4, ensure_ascii=False)
         print("[*] Análise salva em analysis_results.json")
 
+    # ─────────────────────────────────────────────────────────────────────────
+    # MODO SAST: análise estática de código fonte
+    # ─────────────────────────────────────────────────────────────────────────
+    async def analyze_file_target(self, file_data: str) -> dict:
+        """
+        Análise estática (SAST): recebe o conteúdo de um arquivo como string
+        e retorna vulnerabilidades encontradas pela IA no formato JSON padrão.
+        """
+        print(f"[*] Iniciando análise SAST ({len(file_data)} bytes)...")
+
+        prompt_text = f"""Você é um Arquiteto de Software Especialista e Engenheiro de Segurança Principal (SecOps) Autônomo.
+Realize uma Análise Estática de Código Fonte (SAST) no seguinte arquivo:
+
+[CONTEÚDO DO ARQUIVO]
+{file_data}
+
+O seu foco principal deve ser em:
+1. Análise de vulnerabilidades no código fonte.
+2. Boas práticas de segurança.
+3. Sugestões de correção.
+
+Quais são as falhas essenciais, vulnerabilidades ou más práticas que você detecta neste código?
+Retorne SOMENTE um JSON cru (sem crases Markdown) com esta estrutura:
+{{
+    "vulnerabilidades": [
+        {{
+            "titulo": "Nome da Falha",
+            "explicacao": "Prova técnica detalhada. Use tags HTML <br> e <b> para formatar.",
+            "patch": "Código de correção cru",
+            "mermaid": "graph TD\\nA[Identificacao] --> B[Analise]\\nB --> C[Conclusao]"
+        }}
+    ]
+}}"""
+
+        message = HumanMessage(content=[{"type": "text", "text": prompt_text}])
+
+        try:
+            response = await self.llm.ainvoke([message])
+            print("[✓] Resposta SAST da IA recebida!")
+        except Exception as e:
+            print(f"[ERRO] Análise SAST falhou: {str(e)}")
+            return {"error": str(e), "status": "ai_failure"}
+
+        parsed = self._parse_json_response(response.content)
+        return parsed
+
+
 if __name__ == "__main__":
     from dotenv import load_dotenv
     load_dotenv()
