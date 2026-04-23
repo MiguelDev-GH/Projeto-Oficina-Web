@@ -2,3 +2,17 @@
 .env
 .env.local
 .env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Generated files
+backend/analysis_results.json
+backend/scan_results.json
+backend/reports/*.pdf
+
+# Node
+node_modules/
+dist/

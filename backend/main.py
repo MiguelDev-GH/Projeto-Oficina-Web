@@ -1,6 +1,7 @@
-from fastapi import FastAPI, BackgroundTasks, File, UploadFile, Form
+from fastapi import FastAPI, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 import uvicorn
 from scanner import SecurityScanner
 from ai_engine import PentestAIEngine
@@ -13,7 +14,7 @@ from dotenv import load_dotenv
 env_path = os.path.join(os.path.dirname(__file__), ".env")
 load_dotenv(env_path)
 
-app = FastAPI(title="SecOps AI Pentester", version="1.0.0")
+app = FastAPI(title="SecOps AI Pentester", version="2.0.0")
 
 # Garante que a pasta reports existe para montagem estática
 reports_path = os.path.join(os.path.dirname(__file__), "reports")
@@ -30,15 +31,28 @@ app.add_middleware(
 # Monta a pasta de relatórios como arquivos estáticos para acesso via browser
 app.mount("/reports", StaticFiles(directory=reports_path), name="reports")
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Schemas
+# ─────────────────────────────────────────────────────────────────────────────
+class WebAnalyzeRequest(BaseModel):
+    target_url: str
+    model: str = "gemini-2.5-flash"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Endpoints
+# ─────────────────────────────────────────────────────────────────────────────
 @app.get("/")
 async def root():
-    return {"message": "Olá Mundo. Ambiente FastAPI isolado rodando com sucesso."}
+    return {"message": "SecOps AI Pentester v2 — Endpoints: /analyze (infra) | /analyze-web (DAST)"}
+
 
 @app.post("/analyze")
 async def analyze_target(target: str = "172.17.0.2", model: str = None):
     """
-    Orchestrates the 3 phases in a single call.
-    Attention: The scanner actively blocks any public IP.
+    MODO INFRAESTRUTURA: Orquestra scan Nmap + análise de IA textual.
+    Atenção: O scanner bloqueia ativamente qualquer IP público.
     """
     try:
         # Extração de porta se houver (ex: localhost:3000)
@@ -59,7 +73,6 @@ async def analyze_target(target: str = "172.17.0.2", model: str = None):
         pdf_url = None
         if "error" not in ai_analysis:
             report_gen = ReportGenerator()
-            # O gerador salva o arquivo, nós retornamos apenas o nome para construir a URL
             report_gen.generate_pdf(scan_results, ai_analysis)
             pdf_url = "/reports/secops_report.pdf"
             
@@ -77,63 +90,52 @@ async def analyze_target(target: str = "172.17.0.2", model: str = None):
         print(f"[ERRO CRÍTICO NO BACKEND] {str(e)}")
         return {"status": "erro_interno", "error": str(e)}
 
-@app.post("/analyze-file")
-async def analyze_file(file: UploadFile = File(...), model: str = Form(...)):
+
+@app.post("/analyze-web")
+async def analyze_web(request: WebAnalyzeRequest):
     """
-    Endpoint para análise estática de código fonte (SAST).
-    Recebe um arquivo em memória, valida e envia para a IA.
+    MODO DAST MULTIMODAL: Orquestra captura Playwright (HTML + Screenshot + Console Logs)
+    e análise multimodal via Gemini (texto + imagem).
     """
     try:
-        # Segurança: Validação de extensão
-        allowed_extensions = {".py", ".js", ".jsx", ".ts", ".tsx", ".json", ".html", ".css", ".txt"}
-        _, ext = os.path.splitext(file.filename)
-        if ext.lower() not in allowed_extensions:
-            return {"status": "bloqueado", "error": f"Extensão de arquivo não permitida: {ext}"}
+        from web_scraper import WebReconScanner                   # import local para não falhar se playwright não estiver instalado em dev
 
-        # Segurança: Lendo e validando o tamanho na memória (Max 2MB)
-        MAX_SIZE = 2 * 1024 * 1024 # 2MB
-        contents = await file.read()
-        if len(contents) > MAX_SIZE:
-            return {"status": "bloqueado", "error": "Arquivo excede o limite de segurança de 2MB."}
+        print(f"[*] Iniciando análise DAST Web em: {request.target_url}")
 
-        # Decodificar para string UTF-8
-        try:
-            file_data = contents.decode("utf-8")
-        except UnicodeDecodeError:
-            return {"status": "bloqueado", "error": "Falha na decodificação. O arquivo deve ser um texto válido em UTF-8."}
-        
-        print(f"[*] Analisando arquivo: {file.filename} ({len(contents)} bytes) usando {model}")
+        # Fase 1: Captura headless
+        scraper = WebReconScanner()
+        web_data = await scraper.scan_url(request.target_url)
 
-        # Iniciar a engine de IA para análise do arquivo
-        engine = PentestAIEngine(model_name=model)
-        ai_analysis = await engine.analyze_file_target(file_data)
-        
+        # Fase 2: Análise multimodal por IA
+        engine = PentestAIEngine(model_name=request.model)
+        ai_analysis = await engine.analyze_web_target(web_data)
+
+        # Fase 3: Geração de PDF
         pdf_url = None
         if "error" not in ai_analysis:
             report_gen = ReportGenerator()
-            
-            # Formato simulado de scan para compatibilidade com o relatório
-            scan_mock = {
-                "scan_id": "sast_scan_01",
-                "timestamp": "N/A",
-                "target": f"Arquivo: {file.filename}",
-                "open_ports": [],
-                "nmap_raw": f"Análise estática de código fonte (SAST) do arquivo {file.filename}"
-            }
-            report_gen.generate_pdf(scan_mock, ai_analysis)
-            pdf_url = "/reports/secops_report.pdf"
-            
+            report_gen.generate_web_pdf(web_data, ai_analysis)
+            pdf_url = "/reports/secops_web_report.pdf"
+
+        # Remove screenshot do payload JSON de resposta para não sobrecarregar o frontend
+        # O frontend recebe a URL do PDF que já contém a imagem
+        web_data_slim = {k: v for k, v in web_data.items() if k != "screenshot_b64" and k != "html"}
+        web_data_slim["screenshot_available"] = bool(web_data.get("screenshot_b64"))
+
         return {
             "status": "sucesso",
-            "alvo": file.filename,
-            "scan_data": {"tipo": "SAST", "tamanho": len(contents)},
+            "alvo": request.target_url,
+            "scan_data": web_data_slim,
             "inteligencia": ai_analysis,
             "pdf_report": pdf_url
         }
 
     except Exception as e:
-        print(f"[ERRO CRÍTICO SAST] {str(e)}")
+        print(f"[ERRO CRÍTICO NO BACKEND - DAST] {str(e)}")
+        import traceback
+        traceback.print_exc()
         return {"status": "erro_interno", "error": str(e)}
+
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

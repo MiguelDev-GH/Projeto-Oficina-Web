@@ -25,6 +25,8 @@ services:
       - secops_net
     volumes:
       - ./backend:/app
+    environment:
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     env_file:

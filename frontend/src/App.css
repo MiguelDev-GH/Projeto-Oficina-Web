@@ -364,3 +364,299 @@ h3 {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
 }
+
+/* Error Log Box */
+.error-log-box {
+    background: #121214;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 12px;
+    padding: 24px;
+    margin-top: 20px;
+    position: relative;
+    overflow: hidden;
+}
+
+.error-title {
+    color: #ef4444;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-top: 0;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.error-content {
+    background: #09090b;
+    border: 1px solid #27272a;
+    border-radius: 8px;
+    padding: 16px;
+}
+
+.error-content p {
+    margin: 0 0 8px 0;
+    font-size: 0.9rem;
+    color: #a1a1aa;
+}
+
+.error-content pre {
+    background: #18181b;
+    padding: 12px;
+    border-radius: 6px;
+    margin: 8px 0;
+    overflow-x: auto;
+}
+
+.error-content code {
+    color: #fca5a5;
+    font-family: 'SFMono-Regular', Consolas, monospace;
+    font-size: 0.85rem;
+}
+
+.error-hint {
+    margin-top: 16px !important;
+    font-style: italic;
+    color: #71717a !important;
+    font-size: 0.85rem !important;
+}
+
+/* ─────────────────────────────────────────────────────
+   Sistema de Abas — ScanPanel
+───────────────────────────────────────────────────── */
+.mode-tabs {
+    display: flex;
+    gap: 6px;
+    padding: 5px;
+    background: #09090b;
+    border: 1px solid #27272a;
+    border-radius: 12px;
+    margin-bottom: 24px;
+}
+
+.tab-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: #71717a;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.tab-btn:hover:not(:disabled) {
+    color: #a1a1aa;
+    background: #18181b;
+}
+
+.tab-btn.active {
+    background: #18181b;
+    color: #fafafa;
+    font-weight: 600;
+    box-shadow: inset 0 0 0 1px #3f3f46;
+}
+
+/* Underline animado na aba ativa */
+.tab-btn.active::after {
+    display: none;
+}
+
+.tab-icon {
+    font-size: 1rem;
+}
+
+.tab-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ─────────────────────────────────────────────────────
+   Relatório Web — Screenshot
+───────────────────────────────────────────────────── */
+.web-screenshot-section {
+    margin-bottom: 28px;
+}
+
+.web-screenshot-section h3 {
+    margin-bottom: 12px;
+}
+
+.web-screenshot-wrap {
+    border: 1px solid #3f3f46;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.web-screenshot-wrap img {
+    width: 100%;
+    display: block;
+}
+
+/* ─────────────────────────────────────────────────────
+   Fingerprint de IA
+───────────────────────────────────────────────────── */
+.fingerprint-box {
+    background: #121214;
+    border: 1px solid #27272a;
+    border-radius: 14px;
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.fingerprint-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+}
+
+.fp-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 14px;
+    border-radius: 9999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.fp-detected {
+    background: rgba(239, 68, 68, 0.12);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.fp-undetected {
+    background: rgba(16, 185, 129, 0.1);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.fp-confidence {
+    font-size: 0.8rem;
+    color: #52525b;
+    background: #18181b;
+    border: 1px solid #27272a;
+    padding: 4px 10px;
+    border-radius: 6px;
+}
+
+.fp-evidencias {
+    list-style: none;
+    padding: 0;
+    margin: 12px 0 0 0;
+}
+
+.fp-evidencias li {
+    background: #09090b;
+    border: 1px solid #27272a;
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin-bottom: 6px;
+    font-size: 0.85rem;
+    color: #a1a1aa;
+}
+
+.fp-evidencias li::before {
+    content: "▸ ";
+    color: #818cf8;
+}
+
+/* ─────────────────────────────────────────────────────
+   Riscos de Console
+───────────────────────────────────────────────────── */
+.console-risks-box {
+    margin-bottom: 24px;
+}
+
+.console-risk-entry {
+    background: #121214;
+    border: 1px solid #3f3f46;
+    border-left: 3px solid #fbbf24;
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin-bottom: 12px;
+}
+
+.console-risk-title {
+    color: #fbbf24;
+    font-weight: 600;
+    font-size: 0.95rem;
+    margin-bottom: 8px;
+}
+
+.console-risk-log {
+    background: #09090b;
+    border: 1px solid #27272a;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-family: 'SFMono-Regular', Consolas, monospace;
+    font-size: 0.82rem;
+    color: #a1a1aa;
+    margin-bottom: 8px;
+    word-break: break-all;
+}
+
+.console-risk-desc {
+    font-size: 0.88rem;
+    color: #71717a;
+}
+
+/* Severity badge para vulnerabilidades web */
+.sev-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-left: 8px;
+    vertical-align: middle;
+}
+
+.sev-critica {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+}
+
+.sev-alta {
+    background: rgba(249, 115, 22, 0.2);
+    color: #fb923c;
+}
+
+.sev-media {
+    background: rgba(245, 158, 11, 0.2);
+    color: #fbbf24;
+}
+
+.sev-baixa {
+    background: rgba(16, 185, 129, 0.2);
+    color: #34d399;
+}
+
+.sev-info {
+    background: rgba(99, 102, 241, 0.2);
+    color: #818cf8;
+}
+
+/* Resumo executivo */
+.resumo-box {
+    background: #1a1a2e;
+    border: 1px solid #2d2d4e;
+    border-left: 4px solid #818cf8;
+    border-radius: 10px;
+    padding: 18px 22px;
+    margin-bottom: 24px;
+    font-size: 0.95rem;
+    color: #c8c8d0;
+    line-height: 1.7;
+}
