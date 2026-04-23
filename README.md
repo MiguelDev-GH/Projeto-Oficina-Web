@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="./frontend/src/assets/BenTesterLogo.png" alt="BenTester Logo" width="200">
+</div>
+
 # 👥 Equipe
 - Miguel Chagas Maciel ( **Scrum Master** )
 - João Manoel ( **Developer** - *Security* )
@@ -26,7 +30,7 @@ Uma aplicação que usa a IA para gerenciar os dados de um cliente, com a inten�
 - Utilizar uma combinação de técnicas tradicionais de segurança com Grandes Modelos de Linguagem (LLMs);
 - Gerar um diagrama de como a IA detecta falhas de segurança.
 
-# 🛡️ Projeto SecOps: IA Pentester (White-Hat)
+# BenTester: IA Pentester (White-Hat)
 
 O foco é automatizar a detecção de vulnerabilidades básicas, educar a equipe sobre cibersegurança e aplicar conceitos de IA no processo, gerando um diagrama do caminho percorrido.
 
