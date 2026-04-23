@@ -101,6 +101,69 @@ Retorne SOMENTE um JSON estruturado com os seguintes campos (sem crases Markdown
             json.dump(data, f, indent=4, ensure_ascii=False)
         print("[*] Análise salva em analysis_results.json")
 
+    async def analyze_file_target(self, file_data: str) -> dict:
+        print(f"[*] Iniciando análise de código fonte (Tamanho: {len(file_data)} bytes)...")
+        
+        file_prompt_template = PromptTemplate(
+            input_variables=["file_data"],
+            template="""
+Você é um Arquiteto de Software Especialista e Engenheiro de Segurança Principal (SecOps) Autônomo.
+Realize uma Análise Estática de Código Fonte (SAST) no seguinte arquivo:
+
+[CONTEÚDO DO ARQUIVO]
+{file_data}
+
+O seu foco principal deve ser em:
+1. Análise de vulnerabilidades no código fonte.
+2. Boas práticas de segurança.
+3. Sugestões de correção.
+
+Quais são as falhas essenciais, vulnerabilidades ou más práticas que você detecta neste código? Crie uma resposta de raciocínio profundo formatada da seguinte forma:
+(a) Uma prova documental de como isso é explorável junto com uma explicação técnica profunda de por que o código gera o bug.
+(b) Gere o código explícito da correção da vulnerabilidade (PATCH) pronto para aplicação.
+(c) Crie uma estrutura visual para Mermaid.js que descreva explicitamente o caminho lógico da vulnerabilidade no código.
+
+Retorne SOMENTE um JSON estruturado com os seguintes campos (sem crases Markdown, apenas o JSON cru):
+{{
+    "vulnerabilidades": [
+        {{
+            "titulo": "Nome da Falha",
+            "explicacao": "Sua prova técnica (use tags HTML como <br> e <b> para formatar o texto e quebrar linhas)",
+            "patch": "O código de correção cru",
+            "mermaid": "graph TD\\nA[Identificacao] --> B[Analise]\\nB --> C[Conclusao]\\n(REGRA: Use apenas letras e espaços nos nós.)"
+        }}
+    ]
+}}
+"""
+        )
+        
+        file_chain = file_prompt_template | self.llm
+        
+        print("[*] Enviando solicitação SAST para a IA Generativa (isso pode levar de 5 a 20 segundos)...")
+        
+        try:
+            response = await file_chain.ainvoke({"file_data": file_data})
+            print("[✓] Resposta da IA para arquivo recebida com sucesso!")
+        except Exception as e:
+            print(f"[ERRO] A IA falhou ao processar a análise de arquivo: {str(e)}")
+            return {"error": str(e), "status": "ai_failure"}
+        
+        raw_text = response.content.strip()
+        if raw_text.startswith("```json"):
+            raw_text = raw_text[7:]
+        if raw_text.startswith("```"):
+            raw_text = raw_text[3:]
+        if raw_text.endswith("```"):
+            raw_text = raw_text[:-3]
+            
+        try:
+            parsed_data = json.loads(raw_text)
+            self._save_analysis(parsed_data)
+            return parsed_data
+        except json.JSONDecodeError as e:
+            print(f"[ERRO] Falha ao analisar JSON da IA (Arquivo): {e}")
+            return {"error": "A IA não retornou um JSON válido.", "raw": raw_text}
+
 if __name__ == "__main__":
     from dotenv import load_dotenv
     load_dotenv()
