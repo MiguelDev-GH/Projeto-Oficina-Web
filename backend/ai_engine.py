@@ -58,7 +58,7 @@ Retorne SOMENTE um JSON estruturado com os seguintes campos (sem crases Markdown
             "titulo": "Nome da Falha",
             "explicacao": "Sua prova técnica (use tags HTML como <br> e <b> para formatar o texto e quebrar linhas)",
             "patch": "O código de correção cru",
-            "mermaid": "graph TD\\nA[Identificacao] --> B[Analise]\\nB --> C[Conclusao]\\n(REGRA: Use apenas letras e espaços nos nós. Ex: A[Busca de Portas] --> B[Vulnerabilidade Detectada].)"
+            "mermaid": "graph TD\\nA[Identificacao] --> B[Analise]\\nB --> C[Conclusao]\\n(REGRA CRITICA para o campo mermaid: Use SOMENTE letras ASCII sem acento, numeros e espacos nos rotulos dos nos. PROIBIDO usar acentos, cedilha, parenteses, colchetes extras, aspas ou qualquer caractere especial. Ex CORRETO: A[Deteccao de Portas] --> B[Vulnerabilidade Encontrada]. Ex ERRADO: A[Detecção de Risco (Alto)] --> B[Não Seguro].)"
         }}
     ]
 }}
@@ -219,33 +219,35 @@ Realize uma análise DAST (Dynamic Application Security Testing) completa e reto
     # ─────────────────────────────────────────────────────────────────────────
     # MODO SAST: análise estática de código fonte
     # ─────────────────────────────────────────────────────────────────────────
-    async def analyze_file_target(self, file_data: str) -> dict:
+    async def analyze_file_target(self, vt_data: dict, filename: str) -> dict:
         """
-        Análise estática (SAST): recebe o conteúdo de um arquivo como string
-        e retorna vulnerabilidades encontradas pela IA no formato JSON padrão.
+        Análise de arquivo via VirusTotal + IA: recebe o JSON de detecção do
+        VirusTotal e gera um relatório inteligente no formato padrão.
         """
-        print(f"[*] Iniciando análise SAST ({len(file_data)} bytes)...")
+        import json as _json
+        vt_json_str = _json.dumps(vt_data, indent=2, ensure_ascii=False)
+        print(f"[*] Iniciando análise IA dos dados VirusTotal para {filename}...")
 
         prompt_text = f"""Você é um Arquiteto de Software Especialista e Engenheiro de Segurança Principal (SecOps) Autônomo.
-Realize uma Análise Estática de Código Fonte (SAST) no seguinte arquivo:
+Analise o seguinte relatório de detecção do VirusTotal para o arquivo "{filename}":
 
-[CONTEÚDO DO ARQUIVO]
-{file_data}
+[DADOS DO VIRUSTOTAL EM JSON]
+{vt_json_str}
 
 O seu foco principal deve ser em:
-1. Análise de vulnerabilidades no código fonte.
-2. Boas práticas de segurança.
-3. Sugestões de correção.
+1. Interpretar as detecções dos motores antivírus (engines) e suas categorias.
+2. Avaliar a gravidade com base nas estatísticas (malicious, suspicious, undetected, harmless).
+3. Explicar os riscos reais que este arquivo representa.
+4. Recomendar ações de mitigação/remediação.
 
-Quais são as falhas essenciais, vulnerabilidades ou más práticas que você detecta neste código?
 Retorne SOMENTE um JSON cru (sem crases Markdown) com esta estrutura:
 {{
     "vulnerabilidades": [
         {{
-            "titulo": "Nome da Falha",
-            "explicacao": "Prova técnica detalhada. Use tags HTML <br> e <b> para formatar.",
-            "patch": "Código de correção cru",
-            "mermaid": "graph TD\\nA[Identificacao] --> B[Analise]\\nB --> C[Conclusao]"
+            "titulo": "Nome da Ameaça ou Risco",
+            "explicacao": "Prova técnica detalhada baseada nos dados do VirusTotal. Cite engines específicos, categorias e estatísticas. Use tags HTML <br> e <b> para formatar.",
+            "patch": "Ações recomendadas de mitigação, quarentena ou remoção",
+            "mermaid": "graph TD\\nA[Arquivo Recebido] --> B[Hash SHA256]\\nB --> C[Consulta VirusTotal]\\nC --> D[Analise de Deteccoes]\\nD --> E[Conclusao]\\n(REGRA CRITICA para o campo mermaid: Use SOMENTE letras ASCII sem acento, numeros e espacos nos rotulos dos nos. PROIBIDO usar acentos, cedilha, parenteses, colchetes extras, aspas ou qualquer caractere especial. Ex CORRETO: A[Deteccao de Ameaca] --> B[Arquivo Malicioso]. Ex ERRADO: A[Detecção de Risco (Alto)] --> B[Não Seguro].)"
         }}
     ]
 }}"""
@@ -254,9 +256,9 @@ Retorne SOMENTE um JSON cru (sem crases Markdown) com esta estrutura:
 
         try:
             response = await self.llm.ainvoke([message])
-            print("[✓] Resposta SAST da IA recebida!")
+            print("[✓] Resposta IA (VirusTotal) recebida!")
         except Exception as e:
-            print(f"[ERRO] Análise SAST falhou: {str(e)}")
+            print(f"[ERRO] Análise IA (VirusTotal) falhou: {str(e)}")
             return {"error": str(e), "status": "ai_failure"}
 
         parsed = self._parse_json_response(response.content)
