@@ -8,6 +8,8 @@ from ai_engine import PentestAIEngine
 from report_generator import ReportGenerator
 import json
 import os
+import hashlib
+import asyncio
 from dotenv import load_dotenv
 
 # Ensure we load the .env file from the same directory as main.py
@@ -140,40 +142,113 @@ async def analyze_web(request: WebAnalyzeRequest):
 @app.post("/analyze-file")
 async def analyze_file(file: UploadFile = File(...), model: str = Form(...)):
     """
-    MODO SAST: Recebe um arquivo em memória, valida e envia para análise de código pela IA.
+    MODO ARQUIVO: Consulta VirusTotal + análise inteligente via Gemini.
     """
     try:
-        # Segurança: validação de extensão permitida
-        allowed_extensions = {".py", ".js", ".jsx", ".ts", ".tsx", ".json", ".html", ".css", ".txt"}
-        _, ext = os.path.splitext(file.filename)
-        if ext.lower() not in allowed_extensions:
-            return {"status": "bloqueado", "error": f"Extensão não permitida: {ext}"}
-
-        # Segurança: limite de 2MB em memória (nunca salvo em disco)
-        MAX_SIZE = 2 * 1024 * 1024
         contents = await file.read()
-        if len(contents) > MAX_SIZE:
-            return {"status": "bloqueado", "error": "Arquivo excede o limite de segurança de 2MB."}
+        file_size = len(contents)
+        print(f"[*] Arquivo recebido: {file.filename} ({file_size} bytes)")
 
-        try:
-            file_data = contents.decode("utf-8")
-        except UnicodeDecodeError:
-            return {"status": "bloqueado", "error": "O arquivo deve ser texto válido em UTF-8."}
+        # Calcula SHA-256 do arquivo
+        sha256 = hashlib.sha256(contents).hexdigest()
+        print(f"[*] SHA-256: {sha256}")
 
-        print(f"[*] SAST: Analisando {file.filename} ({len(contents)} bytes) com {model}")
+        vt_api_key = os.getenv("VIRUSTOTAL_API_KEY", "")
+        if not vt_api_key:
+            return {"status": "erro_interno", "error": "VIRUSTOTAL_API_KEY não configurada no .env"}
 
+        vt_headers = {"x-apikey": vt_api_key}
+        vt_data = None
+
+        import httpx
+
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            # Consulta por hash no VirusTotal
+            print(f"[*] Consultando VirusTotal por hash...")
+            vt_resp = await client.get(
+                f"https://www.virustotal.com/api/v3/files/{sha256}",
+                headers=vt_headers
+            )
+
+            if vt_resp.status_code == 200:
+                vt_data = vt_resp.json().get("data", {})
+                print(f"[✓] Arquivo encontrado no VirusTotal (hash conhecido)")
+
+            elif vt_resp.status_code == 404:
+                # Arquivo desconhecido — faz upload ao VirusTotal
+                print(f"[*] Hash não encontrado. Enviando arquivo ao VirusTotal...")
+                upload_resp = await client.post(
+                    "https://www.virustotal.com/api/v3/files",
+                    headers=vt_headers,
+                    files={"file": (file.filename, contents)}
+                )
+
+                if upload_resp.status_code not in (200, 201):
+                    return {"status": "erro_interno", "error": f"Falha no upload ao VirusTotal: {upload_resp.text}"}
+
+                analysis_id = upload_resp.json().get("data", {}).get("id", "")
+                print(f"[*] Upload aceito. Análise ID: {analysis_id}")
+
+                # Polling até a análise terminar (máx 60s)
+                for attempt in range(6):
+                    await asyncio.sleep(10)
+                    print(f"[*] Polling análise... tentativa {attempt + 1}/6")
+                    poll_resp = await client.get(
+                        f"https://www.virustotal.com/api/v3/analyses/{analysis_id}",
+                        headers=vt_headers
+                    )
+                    if poll_resp.status_code == 200:
+                        poll_data = poll_resp.json().get("data", {})
+                        if poll_data.get("attributes", {}).get("status") == "completed":
+                            # Busca o relatório completo do arquivo
+                            file_resp = await client.get(
+                                f"https://www.virustotal.com/api/v3/files/{sha256}",
+                                headers=vt_headers
+                            )
+                            if file_resp.status_code == 200:
+                                vt_data = file_resp.json().get("data", {})
+                            else:
+                                vt_data = poll_data
+                            print(f"[✓] Análise VirusTotal concluída!")
+                            break
+                else:
+                    return {"status": "erro_interno", "error": "Timeout: análise do VirusTotal não concluiu em 60s. Tente novamente."}
+
+            else:
+                return {"status": "erro_interno", "error": f"Erro na API do VirusTotal: {vt_resp.status_code} — {vt_resp.text}"}
+
+        if not vt_data:
+            return {"status": "erro_interno", "error": "Não foi possível obter dados do VirusTotal."}
+
+        # Extrai resumo para scan_data
+        vt_attrs = vt_data.get("attributes", {})
+        vt_stats = vt_attrs.get("last_analysis_stats", {})
+        scan_data_summary = {
+            "tipo": "VIRUSTOTAL",
+            "sha256": sha256,
+            "tamanho_bytes": file_size,
+            "tipo_mime": vt_attrs.get("type_description", "N/A"),
+            "stats": vt_stats,
+            "nomes_populares": vt_attrs.get("popular_threat_classification", {}),
+            "reputacao": vt_attrs.get("reputation", "N/A")
+        }
+
+        print(f"[*] Stats VT: {vt_stats}")
+        print(f"[*] Enviando dados do VirusTotal para análise Gemini com modelo {model}...")
+
+        # Alimenta o Gemini com o JSON do VirusTotal
         engine = PentestAIEngine(model_name=model)
-        ai_analysis = await engine.analyze_file_target(file_data)
+        ai_analysis = await engine.analyze_file_target(vt_data, file.filename)
 
         pdf_url = None
         if "error" not in ai_analysis:
             report_gen = ReportGenerator()
             scan_mock = {
-                "scan_id": "sast_scan",
-                "timestamp": "N/A",
-                "target": f"Arquivo: {file.filename}",
+                "scan_id": "vt_scan",
+                "timestamp": vt_attrs.get("last_analysis_date", "N/A"),
+                "target": f"Arquivo: {file.filename} (SHA-256: {sha256})",
                 "open_ports": [],
-                "nmap_raw": f"Análise estática (SAST) — {file.filename}"
+                "nmap_raw": f"Análise VirusTotal — {file.filename} — Detecções: {vt_stats.get('malicious', 0)} maliciosas"
             }
             report_gen.generate_pdf(scan_mock, ai_analysis)
             pdf_url = "/reports/secops_report.pdf"
@@ -181,13 +256,15 @@ async def analyze_file(file: UploadFile = File(...), model: str = Form(...)):
         return {
             "status": "sucesso",
             "alvo": file.filename,
-            "scan_data": {"tipo": "SAST", "tamanho_bytes": len(contents)},
+            "scan_data": scan_data_summary,
             "inteligencia": ai_analysis,
             "pdf_report": pdf_url
         }
 
     except Exception as e:
-        print(f"[ERRO CRÍTICO SAST] {str(e)}")
+        print(f"[ERRO CRÍTICO ARQUIVO/VT] {str(e)}")
+        import traceback
+        traceback.print_exc()
         return {"status": "erro_interno", "error": str(e)}
 
 

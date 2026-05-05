@@ -82,12 +82,11 @@ export default function ScanPanel({ onScanComplete }) {
                                 ref={fileInputRef}
                                 type="file"
                                 style={{ display: 'none' }}
-                                accept=".py,.js,.jsx,.ts,.tsx,.json,.html,.css,.txt"
                                 onChange={(e) => setFile(e.target.files[0])}
                             />
                             <span className="file-drop-icon">📄</span>
                             <span className="file-drop-text">
-                                {file ? file.name : 'Clique para selecionar um arquivo (.js, .py, .ts…)'}
+                                {file ? file.name : 'Clique para selecionar um arquivo (qualquer tipo)'}
                             </span>
                             {file && (
                                 <span className="file-drop-size">
@@ -122,7 +121,7 @@ export default function ScanPanel({ onScanComplete }) {
                     {loading ? (
                         <span className="btn-loading">
                             <span className="spinner" />
-                            INFILTRANDO...
+                            {mode === MODES.FILE ? 'ANALISANDO VIA VIRUSTOTAL...' : 'INFILTRANDO...'}
                         </span>
                     ) : (
                         '⚡ EXECUTAR ANÁLISE'

@@ -447,8 +447,8 @@ h3 { font-size: 0.98rem; font-weight: 500; color: #d1d5db; margin-top: 0; margin
 /* ─── Vuln entries ──────────────────────────────────────── */
 .vuln-entry {
     border: 1px solid var(--border-dim);
-    padding: 24px;
-    margin-bottom: 18px;
+    padding: 28px;
+    margin-bottom: 32px;
     background: rgba(0, 0, 0, 0.22);
     border-radius: 14px;
     transition: border-color 0.25s;
@@ -456,9 +456,9 @@ h3 { font-size: 0.98rem; font-weight: 500; color: #d1d5db; margin-top: 0; margin
 
 .vuln-entry:hover { border-color: rgba(181, 123, 238, 0.28); }
 
-.vuln-title { color: #fca5a5; font-size: 1rem; font-weight: 600; margin-top: 0; margin-bottom: 16px; line-height: 1.4; }
+.vuln-title { color: var(--text-primary); font-size: 1.2rem; font-weight: 700; margin-top: 0; margin-bottom: 20px; line-height: 1.4; text-align: center; }
 
-.vuln-section { margin-top: 22px; }
+.vuln-section { margin-top: 30px; }
 
 .vuln-section h5 {
     color: #d1d5db;
