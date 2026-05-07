@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { Globe, Folder, FileText, Zap, AlertTriangle } from 'lucide-react';
 import axios from 'axios';
 
 const MODES = { NETWORK: 'network', FILE: 'file' };
@@ -58,11 +59,11 @@ export default function ScanPanel({ onScanComplete }) {
     };
 
     return (
-        <div className="scan-panel">
+        <div className="scan-panel slide-up">
             <form onSubmit={handleScanSubmit} className="scan-form-inner">
 
                 {/* Input central compacto */}
-                <div className="central-input-wrapper">
+                <div className="central-input-wrapper fade-in" key={mode}>
                     {mode === MODES.NETWORK ? (
                         <input
                             id="target-input"
@@ -84,7 +85,7 @@ export default function ScanPanel({ onScanComplete }) {
                                 style={{ display: 'none' }}
                                 onChange={(e) => setFile(e.target.files[0])}
                             />
-                            <span className="file-drop-icon">📄</span>
+                            <FileText className="file-drop-icon" size={24} />
                             <span className="file-drop-text">
                                 {file ? file.name : 'Clique para selecionar um arquivo (qualquer tipo)'}
                             </span>
@@ -124,13 +125,13 @@ export default function ScanPanel({ onScanComplete }) {
                             {mode === MODES.FILE ? 'ANALISANDO VIA VIRUSTOTAL...' : 'INFILTRANDO...'}
                         </span>
                     ) : (
-                        '⚡ EXECUTAR ANÁLISE'
+                        <><Zap size={14} style={{ marginRight: '8px' }} /> EXECUTAR ANÁLISE</>
                     )}
                 </button>
 
                 {error && (
                     <div className="error-alert">
-                        <strong>⚠ Alerta:</strong> {error}
+                        <AlertTriangle size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} /> <strong>Alerta:</strong> {error}
                     </div>
                 )}
             </form>
@@ -143,7 +144,7 @@ export default function ScanPanel({ onScanComplete }) {
                     className={`mode-capsule ${mode === MODES.NETWORK ? 'active' : ''}`}
                     onClick={() => handleModeSwitch(MODES.NETWORK)}
                 >
-                    <span className="capsule-icon">🌐</span>
+                    <Globe className="capsule-icon" size={16} />
                     Modo Link
                 </button>
                 <button
@@ -152,7 +153,7 @@ export default function ScanPanel({ onScanComplete }) {
                     className={`mode-capsule ${mode === MODES.FILE ? 'active' : ''}`}
                     onClick={() => handleModeSwitch(MODES.FILE)}
                 >
-                    <span className="capsule-icon">📁</span>
+                    <Folder className="capsule-icon" size={16} />
                     Modo Arquivo
                 </button>
             </div>

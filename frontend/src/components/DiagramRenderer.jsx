@@ -50,7 +50,7 @@ export default function DiagramRenderer({ chartCode }) {
             className="diagram-container"
             ref={ref}
             dangerouslySetInnerHTML={{ __html: svgContent }}
-            style={{ padding: '20px', background: '#1e1e1e', borderRadius: '8px', overflowX: 'auto', border: '1px solid #333' }}
+            style={{ padding: '20px', background: 'rgba(0, 0, 0, 0.2)', borderRadius: '12px', overflowX: 'auto', border: '1px solid var(--border-dim)' }}
         />
     );
 }

@@ -189,10 +189,10 @@ async def analyze_file(file: UploadFile = File(...), model: str = Form(...)):
                 analysis_id = upload_resp.json().get("data", {}).get("id", "")
                 print(f"[*] Upload aceito. Análise ID: {analysis_id}")
 
-                # Polling até a análise terminar (máx 60s)
-                for attempt in range(6):
+                # Polling até a análise terminar (máx 120s)
+                for attempt in range(12):
                     await asyncio.sleep(10)
-                    print(f"[*] Polling análise... tentativa {attempt + 1}/6")
+                    print(f"[*] Polling análise... tentativa {attempt + 1}/12")
                     poll_resp = await client.get(
                         f"https://www.virustotal.com/api/v3/analyses/{analysis_id}",
                         headers=vt_headers
