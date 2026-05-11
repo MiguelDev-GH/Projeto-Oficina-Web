@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { ShieldCheck, Download, Cpu } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ShieldCheck, Download, Cpu, BookOpen } from 'lucide-react';
 import ScanPanel from './components/ScanPanel';
 import ReportViewer from './components/ReportViewer';
 import Logo from './assets/BenTesterLogo.png';
@@ -32,6 +33,9 @@ function App() {
           <ShieldCheck size={14} color="#34d399" />
           {activeProvider === 'openai' ? 'LangChain & OpenAI Ativo' : 'LangChain & Gemini Ativo'}
         </div>
+        <Link to="/docs" className="doc-nav-link">
+          <BookOpen size={14} /> Documentação
+        </Link>
       </header>
 
       <main className="main-content">
