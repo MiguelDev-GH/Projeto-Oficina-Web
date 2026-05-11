@@ -11,31 +11,32 @@ import asyncio
 env_path = os.path.join(os.path.dirname(__file__), ".env")
 load_dotenv(env_path)
 
+# OpenAI models available for Plus plan
+OPENAI_MODELS = {
+    "gpt-4o",
+    "gpt-4o-mini",
+    "gpt-4-turbo",
+    "gpt-4",
+    "gpt-4.1",
+    "gpt-4.1-mini",
+    "gpt-4.1-nano",
+    "o1",
+    "o1-mini",
+    "o3-mini",
+    "o4-mini",
+}
+
 class PentestAIEngine:
     def __init__(self, model_name: str = None):
-        # LangChain Google GenAI uses GOOGLE_API_KEY by default
-        api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
-        
-        if not api_key or api_key == "sua_chave_aqui":
-            raise ValueError("[CRITICAL ERROR] GOOGLE_API_KEY not found or invalid in .env file. Please add your real Gemini API key.")
-        
-        # Ensure the environment variable is set for the library's internal use as well
-        os.environ["GOOGLE_API_KEY"] = api_key
-        
-        # Determine model: explicit argument > env var > default
-        if model_name:
-            chosen_model = model_name
+        # ── Determine provider based on model name ────────────────────────────
+        # If the model is a known OpenAI model, use OpenAI; otherwise use Gemini.
+        self.provider = "openai" if (model_name and model_name in OPENAI_MODELS) else "gemini"
+
+        if self.provider == "openai":
+            self._init_openai(model_name)
         else:
-            chosen_model = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
-        
-        print(f"[*] Conectando ao provedor de IA com o modelo {chosen_model}...")
-        self.llm = ChatGoogleGenerativeAI(
-            model=chosen_model,
-            temperature=0.2,
-            api_key=api_key,
-            max_retries=2
-        )
-        
+            self._init_gemini(model_name)
+
         # ── Prompt modo INFRA (Nmap) ──────────────────────────────────────────
         self.prompt_template = PromptTemplate(
             input_variables=["scan_data"],
@@ -67,6 +68,41 @@ Retorne SOMENTE um JSON estruturado com os seguintes campos (sem crases Markdown
         self.chain = self.prompt_template | self.llm
 
     # ─────────────────────────────────────────────────────────────────────────
+    # Provider initialisation helpers
+    # ─────────────────────────────────────────────────────────────────────────
+    def _init_gemini(self, model_name: str = None):
+        api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
+        if not api_key or api_key == "sua_chave_aqui":
+            raise ValueError("[CRITICAL ERROR] GOOGLE_API_KEY not found or invalid in .env file. Please add your real Gemini API key.")
+        os.environ["GOOGLE_API_KEY"] = api_key
+
+        chosen_model = model_name or os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+        print(f"[*] Conectando ao Gemini com o modelo {chosen_model}...")
+        self.llm = ChatGoogleGenerativeAI(
+            model=chosen_model,
+            temperature=0.2,
+            api_key=api_key,
+            max_retries=2
+        )
+
+    def _init_openai(self, model_name: str = None):
+        from langchain_openai import ChatOpenAI
+
+        # Read key from .env
+        api_key = os.getenv("OPENAI_API_KEY", "")
+        if not api_key or api_key == "sua_chave_openai_aqui":
+            raise ValueError("[CRITICAL ERROR] OPENAI_API_KEY não encontrada ou inválida no .env. Adicione sua chave real da OpenAI.")
+
+        chosen_model = model_name or "gpt-4o-mini"
+        print(f"[*] Conectando à OpenAI com o modelo {chosen_model}...")
+        self.llm = ChatOpenAI(
+            model=chosen_model,
+            temperature=0.2,
+            api_key=api_key,
+            max_retries=2
+        )
+
+    # ─────────────────────────────────────────────────────────────────────────
     # MODO INFRA: análise de scan Nmap
     # ─────────────────────────────────────────────────────────────────────────
     async def analyze_scan(self) -> dict:
@@ -83,8 +119,9 @@ Retorne SOMENTE um JSON estruturado com os seguintes campos (sem crases Markdown
             response = await self.chain.ainvoke({"scan_data": scan_data_str})
             print("[✓] Resposta da IA recebida com sucesso!")
         except Exception as e:
+            msg = self._friendly_error(e)
             print(f"[ERRO] A IA falhou ao processar a solicitação: {str(e)}")
-            return {"error": str(e), "status": "ai_failure"}
+            return {"error": msg, "status": "ai_failure"}
         
         return self._parse_json_response(response.content)
 
@@ -93,7 +130,7 @@ Retorne SOMENTE um JSON estruturado com os seguintes campos (sem crases Markdown
     # ─────────────────────────────────────────────────────────────────────────
     async def analyze_web_target(self, web_data: dict) -> dict:
         """
-        Análise multimodal: envia ao Gemini o HTML renderizado, o screenshot
+        Análise multimodal: envia ao modelo o HTML renderizado, o screenshot
         (imagem JPEG em Base64) e os logs do console da página alvo.
         Retorna JSON com fingerprint de IA, riscos de injeção e riscos de console.
         """
@@ -172,7 +209,14 @@ Realize uma análise DAST (Dynamic Application Security Testing) completa e reto
         # ── Monta mensagem multimodal (texto + imagem) ────────────────────────
         content_parts = [{"type": "text", "text": prompt_text}]
 
-        if screenshot_b64:
+        # Note: vision (image) is only supported by Gemini and GPT-4 Vision models.
+        # For OpenAI, only attach image if the model supports it (gpt-4o, gpt-4-turbo, gpt-4.1*).
+        supports_vision = self.provider == "gemini" or (self.provider == "openai" and any(
+            m in (self.llm.model_name if hasattr(self.llm, "model_name") else "")
+            for m in ["gpt-4o", "gpt-4-turbo", "gpt-4.1"]
+        ))
+
+        if screenshot_b64 and supports_vision:
             content_parts.append({
                 "type": "image_url",
                 "image_url": {"url": f"data:image/jpeg;base64,{screenshot_b64}"},
@@ -184,8 +228,9 @@ Realize uma análise DAST (Dynamic Application Security Testing) completa e reto
             response = await self.llm.ainvoke([message])
             print("[✓] Resposta multimodal da IA recebida com sucesso!")
         except Exception as e:
+            msg = self._friendly_error(e)
             print(f"[ERRO] Análise multimodal falhou: {str(e)}")
-            return {"error": str(e), "status": "ai_failure"}
+            return {"error": msg, "status": "ai_failure"}
 
         parsed = self._parse_json_response(response.content)
         self._save_analysis(parsed)
@@ -215,6 +260,53 @@ Realize uma análise DAST (Dynamic Application Security Testing) completa e reto
         with open("analysis_results.json", "w", encoding="utf-8") as f:
             json.dump(data, f, indent=4, ensure_ascii=False)
         print("[*] Análise salva em analysis_results.json")
+
+    def _friendly_error(self, exc: Exception) -> str:
+        """
+        Converte exceções brutas das APIs (OpenAI / Google) em mensagens
+        de uma frase, prontas para exibir no frontend.
+        """
+        raw = str(exc)
+
+        # ── Códigos HTTP conhecidos ───────────────────────────────────────────
+        if "429" in raw or "insufficient_quota" in raw or "rate_limit" in raw.lower():
+            provider = "OpenAI" if self.provider == "openai" else "Google Gemini"
+            return f"Cota da API {provider} esgotada — verifique seu plano e faturamento."
+
+        if "401" in raw or "invalid_api_key" in raw or "API_KEY_INVALID" in raw:
+            provider = "OpenAI" if self.provider == "openai" else "Google Gemini"
+            return f"Chave de API {provider} inválida — confira o valor no arquivo .env."
+
+        if "403" in raw or "permission" in raw.lower():
+            return "Sem permissão para usar este modelo — verifique as configurações da sua conta."
+
+        if "404" in raw or "NOT_FOUND" in raw or "not found" in raw.lower():
+            return "Modelo não encontrado na API — pode estar indisponível ou com nome incorreto."
+
+        if "503" in raw or "overloaded" in raw.lower() or "unavailable" in raw.lower():
+            return "Serviço de IA temporariamente indisponível — tente novamente em alguns instantes."
+
+        if "timeout" in raw.lower() or "timed out" in raw.lower():
+            return "A requisição para a IA excedeu o tempo limite — tente novamente."
+
+        if "connect" in raw.lower() or "network" in raw.lower() or "connection" in raw.lower():
+            return "Falha de conexão com a API de IA — verifique sua internet."
+
+        # ── Tenta extrair o campo 'message' do JSON de erro da OpenAI ────────
+        try:
+            import re
+            match = re.search(r"'message':\s*'([^']+)'", raw)
+            if match:
+                return match.group(1)
+            match = re.search(r'"message":\s*"([^"]+)"', raw)
+            if match:
+                return match.group(1)
+        except Exception:
+            pass
+
+        # ── Fallback: primeira linha do erro ─────────────────────────────────
+        first_line = raw.split("\n")[0][:160]
+        return first_line if first_line else "Erro desconhecido ao chamar a IA."
 
     # ─────────────────────────────────────────────────────────────────────────
     # MODO SAST: análise estática de código fonte
@@ -258,8 +350,9 @@ Retorne SOMENTE um JSON cru (sem crases Markdown) com esta estrutura:
             response = await self.llm.ainvoke([message])
             print("[✓] Resposta IA (VirusTotal) recebida!")
         except Exception as e:
+            msg = self._friendly_error(e)
             print(f"[ERRO] Análise IA (VirusTotal) falhou: {str(e)}")
-            return {"error": str(e), "status": "ai_failure"}
+            return {"error": msg, "status": "ai_failure"}
 
         parsed = self._parse_json_response(response.content)
         return parsed

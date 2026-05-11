@@ -71,12 +71,15 @@ async def analyze_target(target: str = "172.17.0.2", model: str = None):
         
         engine = PentestAIEngine(model_name=model)
         ai_analysis = await engine.analyze_scan()
+
+        # Se a IA retornou erro, propaga como erro top-level para o frontend
+        if "error" in ai_analysis:
+            return {"status": "erro_interno", "error": ai_analysis["error"]}
         
         pdf_url = None
-        if "error" not in ai_analysis:
-            report_gen = ReportGenerator()
-            report_gen.generate_pdf(scan_results, ai_analysis)
-            pdf_url = "/reports/secops_report.pdf"
+        report_gen = ReportGenerator()
+        report_gen.generate_pdf(scan_results, ai_analysis)
+        pdf_url = "/reports/secops_report.pdf"
             
         return {
             "status": "sucesso",
@@ -112,12 +115,15 @@ async def analyze_web(request: WebAnalyzeRequest):
         engine = PentestAIEngine(model_name=request.model)
         ai_analysis = await engine.analyze_web_target(web_data)
 
+        # Se a IA retornou erro, propaga como erro top-level para o frontend
+        if "error" in ai_analysis:
+            return {"status": "erro_interno", "error": ai_analysis["error"]}
+
         # Fase 3: Geração de PDF
         pdf_url = None
-        if "error" not in ai_analysis:
-            report_gen = ReportGenerator()
-            report_gen.generate_web_pdf(web_data, ai_analysis)
-            pdf_url = "/reports/secops_web_report.pdf"
+        report_gen = ReportGenerator()
+        report_gen.generate_web_pdf(web_data, ai_analysis)
+        pdf_url = "/reports/secops_web_report.pdf"
 
         # Remove screenshot do payload JSON de resposta para não sobrecarregar o frontend
         # O frontend recebe a URL do PDF que já contém a imagem
@@ -189,10 +195,10 @@ async def analyze_file(file: UploadFile = File(...), model: str = Form(...)):
                 analysis_id = upload_resp.json().get("data", {}).get("id", "")
                 print(f"[*] Upload aceito. Análise ID: {analysis_id}")
 
-                # Polling até a análise terminar (máx 60s)
-                for attempt in range(6):
+                # Polling até a análise terminar (máx 120s)
+                for attempt in range(12):
                     await asyncio.sleep(10)
-                    print(f"[*] Polling análise... tentativa {attempt + 1}/6")
+                    print(f"[*] Polling análise... tentativa {attempt + 1}/12")
                     poll_resp = await client.get(
                         f"https://www.virustotal.com/api/v3/analyses/{analysis_id}",
                         headers=vt_headers
@@ -240,18 +246,21 @@ async def analyze_file(file: UploadFile = File(...), model: str = Form(...)):
         engine = PentestAIEngine(model_name=model)
         ai_analysis = await engine.analyze_file_target(vt_data, file.filename)
 
+        # Se a IA retornou erro, propaga como erro top-level para o frontend
+        if "error" in ai_analysis:
+            return {"status": "erro_interno", "error": ai_analysis["error"]}
+
         pdf_url = None
-        if "error" not in ai_analysis:
-            report_gen = ReportGenerator()
-            scan_mock = {
-                "scan_id": "vt_scan",
-                "timestamp": vt_attrs.get("last_analysis_date", "N/A"),
-                "target": f"Arquivo: {file.filename} (SHA-256: {sha256})",
-                "open_ports": [],
-                "nmap_raw": f"Análise VirusTotal — {file.filename} — Detecções: {vt_stats.get('malicious', 0)} maliciosas"
-            }
-            report_gen.generate_pdf(scan_mock, ai_analysis)
-            pdf_url = "/reports/secops_report.pdf"
+        report_gen = ReportGenerator()
+        scan_mock = {
+            "scan_id": "vt_scan",
+            "timestamp": vt_attrs.get("last_analysis_date", "N/A"),
+            "target": f"Arquivo: {file.filename} (SHA-256: {sha256})",
+            "open_ports": [],
+            "nmap_raw": f"Análise VirusTotal — {file.filename} — Detecções: {vt_stats.get('malicious', 0)} maliciosas"
+        }
+        report_gen.generate_pdf(scan_mock, ai_analysis)
+        pdf_url = "/reports/secops_report.pdf"
 
         return {
             "status": "sucesso",
