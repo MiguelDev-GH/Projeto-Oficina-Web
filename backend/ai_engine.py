@@ -11,31 +11,32 @@ import asyncio
 env_path = os.path.join(os.path.dirname(__file__), ".env")
 load_dotenv(env_path)
 
+# OpenAI models available for Plus plan
+OPENAI_MODELS = {
+    "gpt-4o",
+    "gpt-4o-mini",
+    "gpt-4-turbo",
+    "gpt-4",
+    "gpt-4.1",
+    "gpt-4.1-mini",
+    "gpt-4.1-nano",
+    "o1",
+    "o1-mini",
+    "o3-mini",
+    "o4-mini",
+}
+
 class PentestAIEngine:
     def __init__(self, model_name: str = None):
-        # LangChain Google GenAI uses GOOGLE_API_KEY by default
-        api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
-        
-        if not api_key or api_key == "sua_chave_aqui":
-            raise ValueError("[CRITICAL ERROR] GOOGLE_API_KEY not found or invalid in .env file. Please add your real Gemini API key.")
-        
-        # Ensure the environment variable is set for the library's internal use as well
-        os.environ["GOOGLE_API_KEY"] = api_key
-        
-        # Determine model: explicit argument > env var > default
-        if model_name:
-            chosen_model = model_name
+        # ── Determine provider based on model name ────────────────────────────
+        # If the model is a known OpenAI model, use OpenAI; otherwise use Gemini.
+        self.provider = "openai" if (model_name and model_name in OPENAI_MODELS) else "gemini"
+
+        if self.provider == "openai":
+            self._init_openai(model_name)
         else:
-            chosen_model = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
-        
-        print(f"[*] Conectando ao provedor de IA com o modelo {chosen_model}...")
-        self.llm = ChatGoogleGenerativeAI(
-            model=chosen_model,
-            temperature=0.2,
-            api_key=api_key,
-            max_retries=2
-        )
-        
+            self._init_gemini(model_name)
+
         # ── Prompt modo INFRA (Nmap) ──────────────────────────────────────────
         self.prompt_template = PromptTemplate(
             input_variables=["scan_data"],
@@ -67,6 +68,41 @@ Retorne SOMENTE um JSON estruturado com os seguintes campos (sem crases Markdown
         self.chain = self.prompt_template | self.llm
 
     # ─────────────────────────────────────────────────────────────────────────
+    # Provider initialisation helpers
+    # ─────────────────────────────────────────────────────────────────────────
+    def _init_gemini(self, model_name: str = None):
+        api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
+        if not api_key or api_key == "sua_chave_aqui":
+            raise ValueError("[CRITICAL ERROR] GOOGLE_API_KEY not found or invalid in .env file. Please add your real Gemini API key.")
+        os.environ["GOOGLE_API_KEY"] = api_key
+
+        chosen_model = model_name or os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+        print(f"[*] Conectando ao Gemini com o modelo {chosen_model}...")
+        self.llm = ChatGoogleGenerativeAI(
+            model=chosen_model,
+            temperature=0.2,
+            api_key=api_key,
+            max_retries=2
+        )
+
+    def _init_openai(self, model_name: str = None):
+        from langchain_openai import ChatOpenAI
+
+        # Read key from .env
+        api_key = os.getenv("OPENAI_API_KEY", "")
+        if not api_key or api_key == "sua_chave_openai_aqui":
+            raise ValueError("[CRITICAL ERROR] OPENAI_API_KEY não encontrada ou inválida no .env. Adicione sua chave real da OpenAI.")
+
+        chosen_model = model_name or "gpt-4o-mini"
+        print(f"[*] Conectando à OpenAI com o modelo {chosen_model}...")
+        self.llm = ChatOpenAI(
+            model=chosen_model,
+            temperature=0.2,
+            api_key=api_key,
+            max_retries=2
+        )
+
+    # ─────────────────────────────────────────────────────────────────────────
     # MODO INFRA: análise de scan Nmap
     # ─────────────────────────────────────────────────────────────────────────
     async def analyze_scan(self) -> dict:
@@ -93,7 +129,7 @@ Retorne SOMENTE um JSON estruturado com os seguintes campos (sem crases Markdown
     # ─────────────────────────────────────────────────────────────────────────
     async def analyze_web_target(self, web_data: dict) -> dict:
         """
-        Análise multimodal: envia ao Gemini o HTML renderizado, o screenshot
+        Análise multimodal: envia ao modelo o HTML renderizado, o screenshot
         (imagem JPEG em Base64) e os logs do console da página alvo.
         Retorna JSON com fingerprint de IA, riscos de injeção e riscos de console.
         """
@@ -172,7 +208,14 @@ Realize uma análise DAST (Dynamic Application Security Testing) completa e reto
         # ── Monta mensagem multimodal (texto + imagem) ────────────────────────
         content_parts = [{"type": "text", "text": prompt_text}]
 
-        if screenshot_b64:
+        # Note: vision (image) is only supported by Gemini and GPT-4 Vision models.
+        # For OpenAI, only attach image if the model supports it (gpt-4o, gpt-4-turbo, gpt-4.1*).
+        supports_vision = self.provider == "gemini" or (self.provider == "openai" and any(
+            m in (self.llm.model_name if hasattr(self.llm, "model_name") else "")
+            for m in ["gpt-4o", "gpt-4-turbo", "gpt-4.1"]
+        ))
+
+        if screenshot_b64 and supports_vision:
             content_parts.append({
                 "type": "image_url",
                 "image_url": {"url": f"data:image/jpeg;base64,{screenshot_b64}"},

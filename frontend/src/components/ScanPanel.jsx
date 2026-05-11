@@ -1,17 +1,48 @@
 import React, { useState, useRef } from 'react';
-import { Globe, Folder, FileText, Zap, AlertTriangle } from 'lucide-react';
+import { Globe, Folder, FileText, Zap, AlertTriangle, ChevronDown } from 'lucide-react';
 import axios from 'axios';
 
 const MODES = { NETWORK: 'network', FILE: 'file' };
 
-export default function ScanPanel({ onScanComplete }) {
+const GEMINI_MODELS = [
+    { value: 'gemini-2.5-flash',      label: 'Gemini 2.5 Flash' },
+    { value: 'gemini-2.5-pro',        label: 'Gemini 2.5 Pro' },
+    { value: 'gemini-2.0-flash',      label: 'Gemini 2.0 Flash' },
+    { value: 'gemini-2.0-flash-lite', label: 'Gemini 2.0 Flash Lite' },
+    { value: 'gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash Lite' },
+];
+
+const OPENAI_MODELS = [
+    { value: 'gpt-4o',       label: 'GPT-4o' },
+    { value: 'gpt-4o-mini',  label: 'GPT-4o Mini' },
+    { value: 'gpt-4.1',      label: 'GPT-4.1' },
+    { value: 'gpt-4.1-mini', label: 'GPT-4.1 Mini' },
+    { value: 'gpt-4.1-nano', label: 'GPT-4.1 Nano' },
+    { value: 'gpt-4-turbo',  label: 'GPT-4 Turbo' },
+    { value: 'o3-mini',      label: 'o3-mini' },
+    { value: 'o4-mini',      label: 'o4-mini' },
+];
+
+export default function ScanPanel({ onScanComplete, onProviderChange }) {
     const [mode, setMode] = useState(MODES.NETWORK);
     const [target, setTarget] = useState('172.17.0.2');
     const [file, setFile] = useState(null);
+    const [provider, setProvider] = useState('gemini'); // 'gemini' | 'openai'
     const [model, setModel] = useState('gemini-2.5-flash');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const fileInputRef = useRef(null);
+
+    // When provider changes, reset model to first of that provider
+    const handleProviderChange = (newProvider) => {
+        setProvider(newProvider);
+        onProviderChange?.(newProvider);
+        if (newProvider === 'gemini') {
+            setModel(GEMINI_MODELS[0].value);
+        } else {
+            setModel(OPENAI_MODELS[0].value);
+        }
+    };
 
     const handleScanSubmit = async (e) => {
         e.preventDefault();
@@ -58,6 +89,8 @@ export default function ScanPanel({ onScanComplete }) {
         setFile(null);
     };
 
+    const currentModels = provider === 'openai' ? OPENAI_MODELS : GEMINI_MODELS;
+
     return (
         <div className="scan-panel slide-up">
             <form onSubmit={handleScanSubmit} className="scan-form-inner">
@@ -98,23 +131,42 @@ export default function ScanPanel({ onScanComplete }) {
                     )}
                 </div>
 
-                {/* Seletor de modelo minimalista */}
+                {/* Seletor de provedor + modelo */}
                 <div className="model-selector-row">
+                    {/* Toggle provedor */}
+                    <div className="provider-toggle">
+                        <button
+                            id="provider-gemini-btn"
+                            type="button"
+                            className={`provider-btn ${provider === 'gemini' ? 'active' : ''}`}
+                            onClick={() => handleProviderChange('gemini')}
+                        >
+                            Gemini
+                        </button>
+                        <button
+                            id="provider-openai-btn"
+                            type="button"
+                            className={`provider-btn ${provider === 'openai' ? 'active' : ''}`}
+                            onClick={() => handleProviderChange('openai')}
+                        >
+                            OpenAI
+                        </button>
+                    </div>
+
                     <span className="model-label">Modelo:</span>
-                    <select
-                        id="model-select"
-                        className="model-select-minimal"
-                        value={model}
-                        onChange={(e) => setModel(e.target.value)}
-                    >
-                        <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
-                        <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
-                        <option value="gemini-2.0-flash">Gemini 2 Flash</option>
-                        <option value="gemini-2.0-flash-lite">Gemini 2 Flash Lite</option>
-                        <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite</option>
-                        <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite</option>
-                        <option value="gemini-3.1-pro">Gemini 3.1 Pro</option>
-                    </select>
+                    <div className="model-select-wrapper">
+                        <select
+                            id="model-select"
+                            className="model-select-minimal"
+                            value={model}
+                            onChange={(e) => setModel(e.target.value)}
+                        >
+                            {currentModels.map(m => (
+                                <option key={m.value} value={m.value}>{m.label}</option>
+                            ))}
+                        </select>
+                        <ChevronDown size={14} className="select-chevron" />
+                    </div>
                 </div>
 
                 {/* Botão executar */}

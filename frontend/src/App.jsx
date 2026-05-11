@@ -11,6 +11,7 @@ function App() {
     aiAnalysis: null,
     pdfPath: null
   });
+  const [activeProvider, setActiveProvider] = useState('gemini');
 
   const handleScanComplete = (data) => {
     setSessionData({
@@ -29,12 +30,12 @@ function App() {
         </div>
         <div className="status-indicator">
           <ShieldCheck size={14} color="#34d399" />
-          LangChain &amp; Gemini Ativo
+          {activeProvider === 'openai' ? 'LangChain & OpenAI Ativo' : 'LangChain & Gemini Ativo'}
         </div>
       </header>
 
       <main className="main-content">
-        <ScanPanel onScanComplete={handleScanComplete} />
+        <ScanPanel onScanComplete={handleScanComplete} onProviderChange={setActiveProvider} />
 
         {sessionData.scanData && (
           <ReportViewer
