@@ -1,26 +1,26 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Globe, Folder, FileText, Zap, AlertTriangle, ChevronDown } from 'lucide-react';
 import axios from 'axios';
 
 const MODES = { NETWORK: 'network', FILE: 'file' };
 
 const GEMINI_MODELS = [
-    { value: 'gemini-2.5-flash',      label: 'Gemini 2.5 Flash' },
-    { value: 'gemini-2.5-pro',        label: 'Gemini 2.5 Pro' },
-    { value: 'gemini-2.0-flash',      label: 'Gemini 2.0 Flash' },
+    { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
+    { value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
+    { value: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' },
     { value: 'gemini-2.0-flash-lite', label: 'Gemini 2.0 Flash Lite' },
     { value: 'gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash Lite' },
 ];
 
 const OPENAI_MODELS = [
-    { value: 'gpt-4o',       label: 'GPT-4o' },
-    { value: 'gpt-4o-mini',  label: 'GPT-4o Mini' },
-    { value: 'gpt-4.1',      label: 'GPT-4.1' },
+    { value: 'gpt-4o', label: 'GPT-4o' },
+    { value: 'gpt-4o-mini', label: 'GPT-4o Mini' },
+    { value: 'gpt-4.1', label: 'GPT-4.1' },
     { value: 'gpt-4.1-mini', label: 'GPT-4.1 Mini' },
     { value: 'gpt-4.1-nano', label: 'GPT-4.1 Nano' },
-    { value: 'gpt-4-turbo',  label: 'GPT-4 Turbo' },
-    { value: 'o3-mini',      label: 'o3-mini' },
-    { value: 'o4-mini',      label: 'o4-mini' },
+    { value: 'gpt-4-turbo', label: 'GPT-4 Turbo' },
+    { value: 'o3-mini', label: 'o3-mini' },
+    { value: 'o4-mini', label: 'o4-mini' },
 ];
 
 export default function ScanPanel({ onScanComplete, onProviderChange }) {
@@ -31,12 +31,30 @@ export default function ScanPanel({ onScanComplete, onProviderChange }) {
     const [model, setModel] = useState('gemini-2.5-flash');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const [modelFlashing, setModelFlashing] = useState(false);
+    const [providerKey, setProviderKey] = useState(0);
     const fileInputRef = useRef(null);
+    const flashTimerRef = useRef(null);
+
+    useEffect(() => () => { if (flashTimerRef.current) clearTimeout(flashTimerRef.current); }, []);
+
+    const triggerModelFlash = useCallback(() => {
+        setModelFlashing(false);
+        // Force reflow so removing + re-adding the class re-triggers animation
+        if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+        requestAnimationFrame(() => {
+            setModelFlashing(true);
+            flashTimerRef.current = setTimeout(() => setModelFlashing(false), 560);
+        });
+    }, []);
 
     const handleProviderChange = (newProvider) => {
         setProvider(newProvider);
         onProviderChange?.(newProvider);
-        setModel(newProvider === 'gemini' ? GEMINI_MODELS[0].value : OPENAI_MODELS[0].value);
+        const nextModel = newProvider === 'gemini' ? GEMINI_MODELS[0].value : OPENAI_MODELS[0].value;
+        setModel(nextModel);
+        setProviderKey(k => k + 1);
+        triggerModelFlash();
     };
 
     const handleScanSubmit = async (e) => {
@@ -178,13 +196,14 @@ export default function ScanPanel({ onScanComplete, onProviderChange }) {
                         <div className="model-select-wrapper">
                             <select
                                 id="model-select"
-                                className="model-select-minimal"
+                                className={`model-select-minimal${modelFlashing ? ' model-flash model-changed' : ''}`}
                                 value={model}
-                                onChange={(e) => setModel(e.target.value)}
+                                onChange={(e) => { setModel(e.target.value); triggerModelFlash(); }}
                             >
                                 {currentModels.map(m => (
                                     <option key={m.value} value={m.value}>{m.label}</option>
                                 ))}
+
                             </select>
                             <ChevronDown size={13} className="select-chevron" />
                         </div>
