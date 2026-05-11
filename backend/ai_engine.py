@@ -119,8 +119,9 @@ Retorne SOMENTE um JSON estruturado com os seguintes campos (sem crases Markdown
             response = await self.chain.ainvoke({"scan_data": scan_data_str})
             print("[✓] Resposta da IA recebida com sucesso!")
         except Exception as e:
+            msg = self._friendly_error(e)
             print(f"[ERRO] A IA falhou ao processar a solicitação: {str(e)}")
-            return {"error": str(e), "status": "ai_failure"}
+            return {"error": msg, "status": "ai_failure"}
         
         return self._parse_json_response(response.content)
 
@@ -227,8 +228,9 @@ Realize uma análise DAST (Dynamic Application Security Testing) completa e reto
             response = await self.llm.ainvoke([message])
             print("[✓] Resposta multimodal da IA recebida com sucesso!")
         except Exception as e:
+            msg = self._friendly_error(e)
             print(f"[ERRO] Análise multimodal falhou: {str(e)}")
-            return {"error": str(e), "status": "ai_failure"}
+            return {"error": msg, "status": "ai_failure"}
 
         parsed = self._parse_json_response(response.content)
         self._save_analysis(parsed)
@@ -258,6 +260,53 @@ Realize uma análise DAST (Dynamic Application Security Testing) completa e reto
         with open("analysis_results.json", "w", encoding="utf-8") as f:
             json.dump(data, f, indent=4, ensure_ascii=False)
         print("[*] Análise salva em analysis_results.json")
+
+    def _friendly_error(self, exc: Exception) -> str:
+        """
+        Converte exceções brutas das APIs (OpenAI / Google) em mensagens
+        de uma frase, prontas para exibir no frontend.
+        """
+        raw = str(exc)
+
+        # ── Códigos HTTP conhecidos ───────────────────────────────────────────
+        if "429" in raw or "insufficient_quota" in raw or "rate_limit" in raw.lower():
+            provider = "OpenAI" if self.provider == "openai" else "Google Gemini"
+            return f"Cota da API {provider} esgotada — verifique seu plano e faturamento."
+
+        if "401" in raw or "invalid_api_key" in raw or "API_KEY_INVALID" in raw:
+            provider = "OpenAI" if self.provider == "openai" else "Google Gemini"
+            return f"Chave de API {provider} inválida — confira o valor no arquivo .env."
+
+        if "403" in raw or "permission" in raw.lower():
+            return "Sem permissão para usar este modelo — verifique as configurações da sua conta."
+
+        if "404" in raw or "NOT_FOUND" in raw or "not found" in raw.lower():
+            return "Modelo não encontrado na API — pode estar indisponível ou com nome incorreto."
+
+        if "503" in raw or "overloaded" in raw.lower() or "unavailable" in raw.lower():
+            return "Serviço de IA temporariamente indisponível — tente novamente em alguns instantes."
+
+        if "timeout" in raw.lower() or "timed out" in raw.lower():
+            return "A requisição para a IA excedeu o tempo limite — tente novamente."
+
+        if "connect" in raw.lower() or "network" in raw.lower() or "connection" in raw.lower():
+            return "Falha de conexão com a API de IA — verifique sua internet."
+
+        # ── Tenta extrair o campo 'message' do JSON de erro da OpenAI ────────
+        try:
+            import re
+            match = re.search(r"'message':\s*'([^']+)'", raw)
+            if match:
+                return match.group(1)
+            match = re.search(r'"message":\s*"([^"]+)"', raw)
+            if match:
+                return match.group(1)
+        except Exception:
+            pass
+
+        # ── Fallback: primeira linha do erro ─────────────────────────────────
+        first_line = raw.split("\n")[0][:160]
+        return first_line if first_line else "Erro desconhecido ao chamar a IA."
 
     # ─────────────────────────────────────────────────────────────────────────
     # MODO SAST: análise estática de código fonte
@@ -301,8 +350,9 @@ Retorne SOMENTE um JSON cru (sem crases Markdown) com esta estrutura:
             response = await self.llm.ainvoke([message])
             print("[✓] Resposta IA (VirusTotal) recebida!")
         except Exception as e:
+            msg = self._friendly_error(e)
             print(f"[ERRO] Análise IA (VirusTotal) falhou: {str(e)}")
-            return {"error": str(e), "status": "ai_failure"}
+            return {"error": msg, "status": "ai_failure"}
 
         parsed = self._parse_json_response(response.content)
         return parsed

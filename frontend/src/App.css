@@ -16,8 +16,13 @@
 
 /* ─── Animations ────────────────────────────────────────── */
 @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
 }
 
 @keyframes slideUp {
@@ -25,6 +30,7 @@
         opacity: 0;
         transform: translateY(15px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -36,6 +42,7 @@
         opacity: 0;
         transform: translateX(10px);
     }
+
     to {
         opacity: 1;
         transform: translateX(0);
@@ -48,6 +55,7 @@
 
 .slide-up {
     animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    margin: 20px 0;
 }
 
 .slide-in {
@@ -161,12 +169,70 @@ body {
     gap: 24px;
 }
 
-/* ─── Scan Panel ────────────────────────────────────────── */
+/* ─── Scan Panel Outer (wrapper p/ abas) ────────────────── */
+.scan-panel-outer {
+    position: relative;
+    width: 100%;
+    padding-top: 24px;
+}
+
+/* ─── Mode Tabs (sobrepostos à borda) ───────────────────── */
+.mode-tabs {
+    position: absolute;
+    top: 0;
+    left: 24px;
+    display: flex;
+    gap: 8px;
+    z-index: 2;
+}
+
+.mode-tab {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 9px 18px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-dim);
+    border-radius: 12px;
+    color: var(--text-muted);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.84rem;
+    font-weight: 300;
+    cursor: pointer;
+    transition: all 0.22s ease;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    backdrop-filter: blur(12px);
+}
+
+.mode-tab:hover {
+    border-color: rgba(255, 255, 255, 0.22);
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.mode-tab.active {
+    border-color: rgba(255, 255, 255, 0.2);
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.07);
+    box-shadow: 0 0 12px rgba(255, 255, 255, 0.06);
+}
+
+.mode-tab-icon {
+    opacity: 0.65;
+    flex-shrink: 0;
+}
+
+.mode-tab.active .mode-tab-icon {
+    opacity: 1;
+}
+
+/* ─── Scan Panel (card) ─────────────────────────────────── */
 .scan-panel {
     background: var(--bg-card);
     border: 1px solid var(--border-dim);
     border-radius: 22px;
-    padding: 40px 32px 28px;
+    padding: 28px 28px 24px;
     backdrop-filter: blur(18px);
     box-shadow:
         0 0 0 1px var(--border-dim),
@@ -175,13 +241,12 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 28px;
     transition: border-color 0.3s ease, box-shadow 0.3s ease;
     width: 100%;
 }
 
 .scan-panel:hover {
-    border-color: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.18);
     box-shadow:
         0 0 0 1px rgba(255, 255, 255, 0.1),
         0 14px 60px rgba(0, 0, 0, 0.7),
@@ -191,10 +256,9 @@ body {
 /* ─── Scan Form ─────────────────────────────────────────── */
 .scan-form-inner {
     width: 100%;
-    max-width: 700px;
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: stretch;
     gap: 16px;
 }
 
@@ -272,79 +336,75 @@ body {
     color: var(--text-muted);
 }
 
-/* ─── Model Selector ────────────────────────────────────── */
-.model-selector-row {
+/* ─── Bottom Row ─────────────────────────────────────────── */
+.scan-bottom-row {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
+    width: 100%;
 }
 
-.model-label {
-    font-size: 0.76rem;
-    color: var(--text-muted);
-    font-weight: 300;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
+/* ─── Provider Inline Toggle ────────────────────────────── */
+.provider-inline {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    flex-shrink: 0;
     white-space: nowrap;
 }
 
+.provider-text-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 300;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: color 0.18s ease;
+    letter-spacing: 0.01em;
+    line-height: 1;
+}
+
+.provider-text-btn:hover {
+    color: var(--text-primary);
+}
+
+.provider-text-btn.active {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.provider-sep {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    font-weight: 300;
+    opacity: 0.45;
+    user-select: none;
+}
+
+/* ─── Model Select ───────────────────────────────────────── */
 .model-select-minimal {
     background: var(--bg-input);
     color: var(--text-primary);
     border: 1px solid var(--border-dim);
-    border-radius: 8px;
-    padding: 7px 28px 7px 12px;
+    border-radius: 50px;
+    padding: 7px 30px 7px 14px;
     font-family: 'Inter', sans-serif;
-    font-size: 0.84rem;
+    font-size: 0.82rem;
     outline: none;
     cursor: pointer;
     transition: border-color 0.2s;
     -webkit-appearance: none;
     appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23ffffff'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 10px center;
+    width: 100%;
 }
 
 .model-select-minimal:focus {
-    border-color: var(--accent-light);
-    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.08);
-}
-
-/* ─── Provider Toggle ───────────────────────────────────── */
-.provider-toggle {
-    display: flex;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid var(--border-dim);
-    border-radius: 8px;
-    padding: 3px;
-    gap: 2px;
-}
-
-.provider-btn {
-    padding: 5px 13px;
-    border-radius: 6px;
-    border: none;
-    background: transparent;
-    color: var(--text-muted);
-    font-family: 'Inter', sans-serif;
-    font-size: 0.78rem;
-    font-weight: 400;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    white-space: nowrap;
-    letter-spacing: 0.02em;
-}
-
-.provider-btn:hover {
-    color: var(--text-primary);
-    background: rgba(255, 255, 255, 0.05);
-}
-
-.provider-btn.active {
-    background: rgba(255, 255, 255, 0.12);
-    color: var(--accent-light);
-    box-shadow: 0 0 8px rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.06);
 }
 
 /* ─── Model Select Wrapper ──────────────────────────────── */
@@ -352,44 +412,45 @@ body {
     position: relative;
     display: flex;
     align-items: center;
+    flex: 1;
+    min-width: 0;
 }
 
 .model-select-wrapper .model-select-minimal {
-    padding-right: 30px;
-    background-image: none; /* remove old arrow, use icon instead */
+    background-image: none;
 }
 
 .select-chevron {
     position: absolute;
-    right: 8px;
+    right: 10px;
     pointer-events: none;
     color: var(--text-muted);
     flex-shrink: 0;
 }
 
 
-/* ─── Execute Button ────────────────────────────────────── */
+/* ─── Execute Button ─────────────────────────────────────── */
 .execute-button {
-    width: 100%;
-    max-width: 420px;
-    padding: 13px 28px;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(161, 161, 170, 0.05) 100%);
+    flex-shrink: 0;
+    white-space: nowrap;
+    padding: 8px 22px;
+    background: rgba(255, 255, 255, 0.06);
     color: var(--accent-light);
     border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 12px;
-    font-family: 'Poppins', sans-serif;
-    font-size: 0.82rem;
+    border-radius: 50px;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.84rem;
     font-weight: 400;
-    letter-spacing: 0.09em;
+    letter-spacing: 0.04em;
     cursor: pointer;
-    transition: all 0.25s ease;
-    box-shadow: 0 0 10px rgba(255, 255, 255, 0.05);
-    margin-top: 4px;
+    transition: all 0.22s ease;
+    display: flex;
+    align-items: center;
 }
 
 .execute-button:hover:not(:disabled) {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(161, 161, 170, 0.1) 100%);
-    border-color: var(--accent-light);
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.4);
     box-shadow: var(--accent-glow);
     transform: translateY(-1px);
 }
@@ -429,62 +490,7 @@ body {
     }
 }
 
-/* ─── Mode Capsule Bar ──────────────────────────────────── */
-.mode-capsule-bar {
-    display: flex;
-    gap: 12px;
-    justify-content: center;
-    flex-wrap: wrap;
-    padding-top: 4px;
-}
-
-.mode-capsule {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 26px;
-    border-radius: 50px;
-    border: 1px solid var(--border-dim);
-    background: rgba(255, 255, 255, 0.025);
-    color: var(--text-muted);
-    font-family: 'Inter', sans-serif;
-    font-size: 0.84rem;
-    font-weight: 300;
-    cursor: pointer;
-    transition: all 0.25s ease;
-    letter-spacing: 0.02em;
-    white-space: nowrap;
-}
-
-.mode-capsule:hover {
-    border-color: rgba(255, 255, 255, 0.3);
-    color: var(--accent-light);
-    background: rgba(255, 255, 255, 0.03);
-}
-
-.mode-capsule.active {
-    border-color: var(--accent-light);
-    color: var(--accent-light);
-    background: rgba(255, 255, 255, 0.08);
-    animation: capsule-glow 2.5s ease-in-out infinite;
-}
-
-@keyframes capsule-glow {
-
-    0%,
-    100% {
-        box-shadow: 0 0 10px rgba(255, 255, 255, 0.15), 0 0 24px rgba(255, 255, 255, 0.05);
-    }
-
-    50% {
-        box-shadow: 0 0 20px rgba(255, 255, 255, 0.3), 0 0 44px rgba(255, 255, 255, 0.1);
-    }
-}
-
-.capsule-icon {
-    font-size: 1rem;
-    line-height: 1;
-}
+/* mode-capsule-bar removido — layout migrado para mode-tabs */
 
 /* ─── Error Alert ───────────────────────────────────────── */
 .error-alert {
